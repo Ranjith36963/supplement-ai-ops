@@ -1,0 +1,405 @@
+{
+  "name": "WF2 - Customer Support Triage & Auto-Response",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "support-ticket",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "support-webhook",
+      "name": "Support Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "support-webhook-001"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.API_BASE_URL}}/api/support/triage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $json.body.message, customer_name: $json.body.customer_name || 'Customer', customer_email: $json.body.customer_email || '', order_id: $json.body.order_id || '' }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "ai-triage",
+      "name": "AI Triage Query",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "rules": {
+          "rules": [
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.triage_data.category }}",
+                    "rightValue": "product_question",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Product Question"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.triage_data.category }}",
+                    "rightValue": "complaint",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Complaint"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.triage_data.category }}",
+                    "rightValue": "billing",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Billing"
+            },
+            {
+              "conditions": {
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.triage_data.category }}",
+                    "rightValue": "returns",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": "Returns"
+            }
+          ],
+          "fallbackOutput": "Other"
+        },
+        "options": {}
+      },
+      "id": "route-category",
+      "name": "Route by Category",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-confidence",
+              "leftValue": "={{ $json.auto_reply_ready }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-confidence",
+      "name": "High Confidence?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 180]
+    },
+    {
+      "parameters": {
+        "fromEmail": "support@supplements.com",
+        "toEmail": "={{ $json.customer_email }}",
+        "subject": "Re: Your enquiry - {{ $json.triage_data.category }}",
+        "emailType": "html",
+        "html": "<p>Hi {{ $json.customer_name }},</p><p>{{ $json.triage_data.auto_response }}</p><p>Best regards,<br>Customer Support Team</p>"
+      },
+      "id": "auto-reply",
+      "name": "Send Auto-Reply",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1200, 100]
+    },
+    {
+      "parameters": {
+        "fromEmail": "system@supplements.com",
+        "toEmail": "team-lead@supplements.com",
+        "subject": "[{{ $json.triage_data.priority | uppercase }}] Escalation: {{ $json.triage_data.category }} - {{ $json.customer_name }}",
+        "emailType": "html",
+        "html": "<h3>Escalated Ticket</h3><p><strong>Customer:</strong> {{ $json.customer_name }} ({{ $json.customer_email }})</p><p><strong>Category:</strong> {{ $json.triage_data.category }}</p><p><strong>Priority:</strong> {{ $json.triage_data.priority }}</p><p><strong>Sentiment:</strong> {{ $json.triage_data.sentiment }}</p><p><strong>Original Message:</strong></p><blockquote>{{ $json.triage_data.internal_notes }}</blockquote><p><strong>AI Draft Response:</strong></p><blockquote>{{ $json.triage_data.auto_response }}</blockquote><p><strong>Suggested Action:</strong> {{ $json.triage_data.suggested_action }}</p><p><strong>Tags:</strong> {{ $json.triage_data.tags.join(', ') }}</p>"
+      },
+      "id": "escalate-email",
+      "name": "Escalate to Team",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1200, 280]
+    },
+    {
+      "parameters": {
+        "fromEmail": "system@supplements.com",
+        "toEmail": "manager@supplements.com",
+        "subject": "[URGENT COMPLAINT] {{ $json.customer_name }}",
+        "emailType": "html",
+        "html": "<h3>Complaint Received</h3><p><strong>Priority:</strong> {{ $json.triage_data.priority }}</p><p><strong>Sentiment:</strong> {{ $json.triage_data.sentiment }}</p><p><strong>Customer:</strong> {{ $json.customer_name }}</p><p><strong>Details:</strong> {{ $json.triage_data.internal_notes }}</p><p><strong>Draft Response:</strong> {{ $json.triage_data.auto_response }}</p>"
+      },
+      "id": "complaint-escalate",
+      "name": "Escalate Complaint",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [960, 420]
+    },
+    {
+      "parameters": {
+        "fromEmail": "system@supplements.com",
+        "toEmail": "billing@supplements.com",
+        "subject": "[BILLING] {{ $json.customer_name }} - {{ $json.order_id || 'No Order ID' }}",
+        "emailType": "html",
+        "html": "<h3>Billing Query</h3><p><strong>Customer:</strong> {{ $json.customer_name }}</p><p><strong>Order ID:</strong> {{ $json.order_id || 'Not provided' }}</p><p><strong>Details:</strong> {{ $json.triage_data.internal_notes }}</p>"
+      },
+      "id": "billing-forward",
+      "name": "Forward to Billing",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [960, 560]
+    },
+    {
+      "parameters": {
+        "fromEmail": "system@supplements.com",
+        "toEmail": "returns@supplements.com",
+        "subject": "[RETURNS] {{ $json.customer_name }} - {{ $json.order_id || 'No Order ID' }}",
+        "emailType": "html",
+        "html": "<h3>Returns Request</h3><p><strong>Customer:</strong> {{ $json.customer_name }}</p><p><strong>Order ID:</strong> {{ $json.order_id || 'Not provided' }}</p><p><strong>Details:</strong> {{ $json.triage_data.internal_notes }}</p>"
+      },
+      "id": "returns-forward",
+      "name": "Forward to Returns",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [960, 700]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'processed', category: $('AI Triage Query').item.json.triage_data.category, priority: $('AI Triage Query').item.json.triage_data.priority, action_taken: $('AI Triage Query').item.json.triage_data.suggested_action, tags: $('AI Triage Query').item.json.triage_data.tags }) }}"
+      },
+      "id": "respond-done",
+      "name": "Respond - Done",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1440, 300]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "log_entry",
+              "value": "={{ JSON.stringify({ timestamp: new Date().toISOString(), category: $json.triage_data.category, priority: $json.triage_data.priority, sentiment: $json.triage_data.sentiment, action: $json.triage_data.suggested_action, tags: $json.triage_data.tags, confidence: $json.triage_data.confidence }) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "log-ticket",
+      "name": "Log Ticket Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [720, 100]
+    }
+  ],
+  "connections": {
+    "Support Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Triage Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Triage Query": {
+      "main": [
+        [
+          {
+            "node": "Log Ticket Data",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Route by Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Category": {
+      "main": [
+        [
+          {
+            "node": "High Confidence?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalate Complaint",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Forward to Billing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Forward to Returns",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalate to Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "High Confidence?": {
+      "main": [
+        [
+          {
+            "node": "Send Auto-Reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Escalate to Team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Auto-Reply": {
+      "main": [
+        [
+          {
+            "node": "Respond - Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate to Team": {
+      "main": [
+        [
+          {
+            "node": "Respond - Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Escalate Complaint": {
+      "main": [
+        [
+          {
+            "node": "Respond - Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forward to Billing": {
+      "main": [
+        [
+          {
+            "node": "Respond - Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Forward to Returns": {
+      "main": [
+        [
+          {
+            "node": "Respond - Done",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "support",
+      "id": "tag-support"
+    },
+    {
+      "name": "ai-powered",
+      "id": "tag-ai"
+    }
+  ]
+}

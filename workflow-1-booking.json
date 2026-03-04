@@ -1,0 +1,321 @@
+{
+  "name": "WF1 - Smart Consultation Booking",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "booking-request",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "Booking Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "booking-webhook-001"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.API_BASE_URL}}/api/booking/process",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $json.body.message, customer_name: $json.body.customer_name || 'Unknown', customer_email: $json.body.customer_email || '' }) }}",
+        "options": {
+          "timeout": 30000,
+          "retry": {
+            "maxRetries": 3,
+            "retryInterval": 1000
+          }
+        }
+      },
+      "id": "ai-process",
+      "name": "AI Process Booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-booking-intent",
+              "leftValue": "={{ $json.booking_data.intent }}",
+              "rightValue": "book_consultation",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "check-intent",
+      "name": "Is Booking Request?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [700, 300]
+    },
+    {
+      "parameters": {
+        "calendarId": "primary",
+        "timeMin": "={{ $json.booking_data.preferred_date }}T{{ $json.booking_data.preferred_time || '09:00' }}:00Z",
+        "timeMax": "={{ $json.booking_data.preferred_date }}T{{ $json.booking_data.preferred_time ? (parseInt($json.booking_data.preferred_time.split(':')[0]) + 1).toString().padStart(2, '0') + ':00' : '18:00' }}:00Z"
+      },
+      "id": "check-calendar",
+      "name": "Check Calendar Availability",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 3,
+      "position": [930, 200],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GOOGLE_CALENDAR_CRED_ID",
+          "name": "Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-availability",
+              "leftValue": "={{ $json.length || 0 }}",
+              "rightValue": "0",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "is-available",
+      "name": "Slot Available?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1150, 200]
+    },
+    {
+      "parameters": {
+        "calendarId": "primary",
+        "start": "={{ $('AI Process Booking').item.json.booking_data.preferred_date }}T{{ $('AI Process Booking').item.json.booking_data.preferred_time || '10:00' }}:00Z",
+        "end": "={{ $('AI Process Booking').item.json.booking_data.preferred_date }}T{{ (parseInt(($('AI Process Booking').item.json.booking_data.preferred_time || '10:00').split(':')[0]) + 1).toString().padStart(2, '0') }}:00:00Z",
+        "additionalFields": {
+          "summary": "Supplement Consultation - {{ $('AI Process Booking').item.json.customer_name }}",
+          "description": "Health concerns: {{ $('AI Process Booking').item.json.booking_data.health_concerns.join(', ') }}\nSuggested product: {{ $('AI Process Booking').item.json.booking_data.supplement_suggestion.primary }}\nReason: {{ $('AI Process Booking').item.json.booking_data.supplement_suggestion.reason }}"
+        }
+      },
+      "id": "create-event",
+      "name": "Create Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 3,
+      "position": [1380, 100],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GOOGLE_CALENDAR_CRED_ID",
+          "name": "Google Calendar"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@supplements.com",
+        "toEmail": "={{ $('AI Process Booking').item.json.customer_email }}",
+        "subject": "Your Consultation is Confirmed!",
+        "emailType": "html",
+        "html": "<h2>Consultation Confirmed</h2><p>Hi {{ $('AI Process Booking').item.json.customer_name }},</p><p>Your supplement consultation has been booked:</p><ul><li><strong>Date:</strong> {{ $('AI Process Booking').item.json.booking_data.preferred_date }}</li><li><strong>Time:</strong> {{ $('AI Process Booking').item.json.booking_data.preferred_time }}</li></ul><p><strong>Based on your concerns about {{ $('AI Process Booking').item.json.booking_data.health_concerns.join(', ') }}, we recommend looking into our {{ $('AI Process Booking').item.json.booking_data.supplement_suggestion.primary }} range.</strong></p><p>{{ $('AI Process Booking').item.json.booking_data.supplement_suggestion.reason }}</p><p>Looking forward to helping you!</p>"
+      },
+      "id": "send-confirmation",
+      "name": "Send Confirmation Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1600, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'booked', message: 'Consultation booked successfully', booking: $('AI Process Booking').item.json.booking_data }) }}"
+      },
+      "id": "respond-success",
+      "name": "Respond - Booked",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1820, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'unavailable', message: 'Requested slot is not available', suggested_action: 'Please try another time', original_request: $('AI Process Booking').item.json.booking_data }) }}"
+      },
+      "id": "respond-unavailable",
+      "name": "Respond - Unavailable",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1380, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'enquiry', message: 'Your enquiry has been received', data: $('AI Process Booking').item.json.booking_data, follow_up: $('AI Process Booking').item.json.booking_data.follow_up_questions }) }}"
+      },
+      "id": "respond-enquiry",
+      "name": "Respond - Enquiry",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [930, 420]
+    },
+    {
+      "parameters": {
+        "errorMessage": "Booking workflow failed",
+        "values": {
+          "string": [
+            {
+              "name": "error_type",
+              "value": "booking_processing_error"
+            }
+          ]
+        }
+      },
+      "id": "error-handler",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [480, 500]
+    }
+  ],
+  "connections": {
+    "Booking Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Process Booking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Process Booking": {
+      "main": [
+        [
+          {
+            "node": "Is Booking Request?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Booking Request?": {
+      "main": [
+        [
+          {
+            "node": "Check Calendar Availability",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Enquiry",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Calendar Availability": {
+      "main": [
+        [
+          {
+            "node": "Slot Available?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slot Available?": {
+      "main": [
+        [
+          {
+            "node": "Create Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Unavailable",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Confirmation Email": {
+      "main": [
+        [
+          {
+            "node": "Respond - Booked",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "booking",
+      "id": "tag-booking"
+    },
+    {
+      "name": "ai-powered",
+      "id": "tag-ai"
+    }
+  ]
+}

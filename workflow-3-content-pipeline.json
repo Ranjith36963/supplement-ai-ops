@@ -1,0 +1,355 @@
+{
+  "name": "WF3 - Content Generation Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "content-generate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "content-webhook",
+      "name": "Content Brief Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "content-webhook-001"
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "brief",
+              "value": "={{ $json.body.brief }}"
+            },
+            {
+              "name": "product_category",
+              "value": "={{ $json.body.product_category || 'focus' }}"
+            },
+            {
+              "name": "tone",
+              "value": "={{ $json.body.tone || 'professional' }}"
+            },
+            {
+              "name": "request_id",
+              "value": "={{ 'REQ-' + Date.now() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "validate-input",
+      "name": "Validate & Tag Input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-brief",
+              "leftValue": "={{ $json.brief }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "has-brief",
+      "name": "Has Valid Brief?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{$env.API_BASE_URL}}/api/content/generate",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ brief: $json.brief, product_category: $json.product_category, tone: $json.tone, content_types: ['email', 'social_media', 'product_description'] }) }}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "ai-generate",
+      "name": "AI Generate Content",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-success",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "success",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "generation-ok",
+      "name": "Generation Successful?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "email_subject",
+              "value": "={{ $json.content.content_variants.email.subject_line }}"
+            },
+            {
+              "name": "email_body",
+              "value": "={{ $json.content.content_variants.email.body }}"
+            },
+            {
+              "name": "email_cta",
+              "value": "={{ $json.content.content_variants.email.cta }}"
+            },
+            {
+              "name": "instagram",
+              "value": "={{ $json.content.content_variants.social_media.instagram }}"
+            },
+            {
+              "name": "twitter",
+              "value": "={{ $json.content.content_variants.social_media.twitter }}"
+            },
+            {
+              "name": "facebook",
+              "value": "={{ $json.content.content_variants.social_media.facebook }}"
+            },
+            {
+              "name": "linkedin",
+              "value": "={{ $json.content.content_variants.social_media.linkedin }}"
+            },
+            {
+              "name": "product_desc_short",
+              "value": "={{ $json.content.content_variants.product_description.short }}"
+            },
+            {
+              "name": "product_desc_medium",
+              "value": "={{ $json.content.content_variants.product_description.medium }}"
+            },
+            {
+              "name": "product_desc_long",
+              "value": "={{ $json.content.content_variants.product_description.long }}"
+            },
+            {
+              "name": "version_id",
+              "value": "={{ $json.version_id }}"
+            },
+            {
+              "name": "seo_keywords",
+              "value": "={{ $json.content.meta.seo_keywords.join(', ') }}"
+            },
+            {
+              "name": "target_audience",
+              "value": "={{ $json.content.meta.target_audience }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "format-output",
+      "name": "Format & Organise Content",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [1340, 120]
+    },
+    {
+      "parameters": {
+        "fromEmail": "content-pipeline@supplements.com",
+        "toEmail": "marketing@supplements.com",
+        "subject": "[REVIEW] New Content Generated - {{ $json.version_id }}",
+        "emailType": "html",
+        "html": "<h2>Content Ready for Review</h2><p><strong>Version:</strong> {{ $json.version_id }}</p><p><strong>Target Audience:</strong> {{ $json.target_audience }}</p><p><strong>SEO Keywords:</strong> {{ $json.seo_keywords }}</p><hr><h3>Email Copy</h3><p><strong>Subject:</strong> {{ $json.email_subject }}</p><p>{{ $json.email_body }}</p><p><strong>CTA:</strong> {{ $json.email_cta }}</p><hr><h3>Social Media</h3><p><strong>Instagram:</strong> {{ $json.instagram }}</p><p><strong>Twitter:</strong> {{ $json.twitter }}</p><p><strong>Facebook:</strong> {{ $json.facebook }}</p><p><strong>LinkedIn:</strong> {{ $json.linkedin }}</p><hr><h3>Product Descriptions</h3><p><strong>Short:</strong> {{ $json.product_desc_short }}</p><p><strong>Medium:</strong> {{ $json.product_desc_medium }}</p><p><strong>Long:</strong> {{ $json.product_desc_long }}</p><hr><p><em>Status: Pending Approval</em></p>"
+      },
+      "id": "send-review",
+      "name": "Send for Review",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1560, 120]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'content_generated', version_id: $json.version_id, content_types: ['email', 'social_media', 'product_description'], review_status: 'sent_for_approval', seo_keywords: $json.seo_keywords }) }}"
+      },
+      "id": "respond-success",
+      "name": "Respond - Content Ready",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1780, 120]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'error', message: 'Content generation failed. Please retry or revise the brief.', request_id: $('Validate & Tag Input').item.json.request_id }) }}"
+      },
+      "id": "respond-fail",
+      "name": "Respond - Failed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1340, 320]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'error', message: 'Invalid request: brief is required' }) }}"
+      },
+      "id": "respond-invalid",
+      "name": "Respond - Invalid Input",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 420]
+    }
+  ],
+  "connections": {
+    "Content Brief Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Tag Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Tag Input": {
+      "main": [
+        [
+          {
+            "node": "Has Valid Brief?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Valid Brief?": {
+      "main": [
+        [
+          {
+            "node": "AI Generate Content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Invalid Input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Generate Content": {
+      "main": [
+        [
+          {
+            "node": "Generation Successful?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generation Successful?": {
+      "main": [
+        [
+          {
+            "node": "Format & Organise Content",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond - Failed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format & Organise Content": {
+      "main": [
+        [
+          {
+            "node": "Send for Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send for Review": {
+      "main": [
+        [
+          {
+            "node": "Respond - Content Ready",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "content",
+      "id": "tag-content"
+    },
+    {
+      "name": "ai-powered",
+      "id": "tag-ai"
+    }
+  ]
+}
