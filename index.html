@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supplement AI Operations Suite — Live Demo</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0a0e17;
+  --surface: #111827;
+  --surface2: #1a2235;
+  --border: #2a3550;
+  --text: #e2e8f0;
+  --text-dim: #8892a8;
+  --accent1: #22d3ee;
+  --accent2: #a78bfa;
+  --accent3: #34d399;
+  --danger: #f87171;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.noise {
+  position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none; z-index: 0;
+}
+
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(120px); opacity: 0.1; pointer-events: none; z-index: 0;
+  animation: float 20s ease-in-out infinite;
+}
+.orb1 { width: 500px; height: 500px; background: var(--accent1); top: -100px; right: -100px; }
+.orb2 { width: 400px; height: 400px; background: var(--accent2); bottom: -50px; left: -100px; animation-delay: -7s; }
+
+@keyframes float {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -30px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+.container {
+  position: relative; z-index: 1;
+  max-width: 900px; margin: 0 auto; padding: 40px 20px;
+}
+
+header { text-align: center; margin-bottom: 48px; }
+
+header h1 {
+  font-size: 2.2rem; font-weight: 700; letter-spacing: -0.03em;
+  background: linear-gradient(135deg, var(--accent1), var(--accent2), var(--accent3));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text; margin-bottom: 8px;
+}
+
+header p { color: var(--text-dim); font-size: 1rem; max-width: 560px; margin: 0 auto 16px; }
+
+.badge-row { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; }
+
+.badge {
+  font-size: 0.65rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+  padding: 4px 10px; border-radius: 100px; border: 1px solid;
+}
+.badge.live { color: var(--accent3); border-color: var(--accent3); background: rgba(52,211,153,0.1); }
+.badge.n8n { color: var(--accent1); border-color: var(--accent1); background: rgba(34,211,238,0.1); }
+.badge.ai { color: var(--accent2); border-color: var(--accent2); background: rgba(167,139,250,0.1); }
+.badge.voice { color: #fb923c; border-color: #fb923c; background: rgba(251,146,60,0.1); }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+  padding: 28px; margin-bottom: 24px; transition: border-color 0.3s;
+}
+.card:hover { border-color: #3a4a6a; }
+
+.card-header {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 6px;
+}
+
+.card-icon {
+  width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center;
+  justify-content: center; font-size: 1.2rem; flex-shrink: 0;
+}
+.icon-voice { background: rgba(251,146,60,0.15); }
+.icon-booking { background: rgba(34,211,238,0.15); }
+.icon-support { background: rgba(167,139,250,0.15); }
+.icon-arch { background: rgba(52,211,153,0.15); }
+
+.card h3 { font-size: 1.1rem; font-weight: 600; }
+.card .subtitle { color: var(--text-dim); font-size: 0.82rem; margin-bottom: 20px; }
+
+label {
+  display: block; font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 5px;
+}
+
+textarea, input {
+  width: 100%; padding: 11px 13px; border-radius: 10px; border: 1px solid var(--border);
+  background: var(--surface2); color: var(--text); font-family: 'DM Sans', sans-serif;
+  font-size: 0.9rem; transition: border-color 0.2s; outline: none; margin-bottom: 14px;
+}
+textarea:focus, input:focus { border-color: var(--accent1); }
+textarea { resize: vertical; min-height: 70px; }
+
+.input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+button.send {
+  width: 100%; padding: 13px; border: none; border-radius: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.9rem; font-weight: 600;
+  cursor: pointer; transition: all 0.3s; display: flex; align-items: center;
+  justify-content: center; gap: 8px;
+}
+button.send:disabled { opacity: 0.5; cursor: not-allowed; }
+button.send:hover:not(:disabled) { transform: translateY(-1px); }
+
+.btn-voice { background: #fb923c; color: #0a0e17; }
+.btn-voice:hover:not(:disabled) { box-shadow: 0 0 25px rgba(251,146,60,0.3); }
+.btn-voice.active { background: var(--danger); animation: pulse 1.5s infinite; }
+
+.btn-booking { background: var(--accent1); color: #0a0e17; }
+.btn-booking:hover:not(:disabled) { box-shadow: 0 0 25px rgba(34,211,238,0.3); }
+
+.btn-support { background: var(--accent2); color: #0a0e17; }
+.btn-support:hover:not(:disabled) { box-shadow: 0 0 25px rgba(167,139,250,0.3); }
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.4); }
+  50% { box-shadow: 0 0 20px 5px rgba(248,113,113,0.2); }
+}
+
+.result {
+  margin-top: 16px; padding: 16px; border-radius: 10px; background: var(--surface2);
+  border: 1px solid var(--border); display: none; font-size: 0.85rem;
+  animation: fadeIn 0.4s ease;
+}
+.result.show { display: block; }
+.result pre {
+  font-family: 'JetBrains Mono', monospace; font-size: 0.78rem;
+  white-space: pre-wrap; word-wrap: break-word; color: var(--accent3);
+  line-height: 1.6;
+}
+
+@keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+.result-label {
+  font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text-dim); margin-bottom: 8px;
+}
+
+.status-dot {
+  display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent3); margin-right: 6px; animation: blink 2s infinite;
+}
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
+.arch-diagram {
+  background: var(--surface2); border-radius: 10px; padding: 20px;
+  font-family: 'JetBrains Mono', monospace; font-size: 0.72rem;
+  line-height: 1.8; color: var(--text-dim); overflow-x: auto;
+}
+.arch-diagram .highlight { color: var(--accent1); font-weight: 600; }
+.arch-diagram .highlight2 { color: var(--accent2); font-weight: 600; }
+.arch-diagram .highlight3 { color: var(--accent3); font-weight: 600; }
+.arch-diagram .highlight4 { color: #fb923c; font-weight: 600; }
+
+.tech-stack {
+  display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;
+}
+.tech-tag {
+  font-size: 0.7rem; font-weight: 500; padding: 4px 10px; border-radius: 6px;
+  background: var(--surface2); border: 1px solid var(--border); color: var(--text-dim);
+}
+
+.voice-status {
+  text-align: center; padding: 12px; color: var(--text-dim); font-size: 0.85rem;
+}
+
+.footer {
+  text-align: center; margin-top: 40px; padding-top: 24px;
+  border-top: 1px solid var(--border); color: var(--text-dim); font-size: 0.8rem;
+}
+.footer a { color: var(--accent1); text-decoration: none; }
+
+@media (max-width: 600px) {
+  header h1 { font-size: 1.6rem; }
+  .input-row { grid-template-columns: 1fr; }
+  .card { padding: 20px; }
+}
+</style>
+</head>
+<body>
+
+<div class="noise"></div>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<div class="container">
+  <header>
+    <h1>Supplement AI Operations Suite</h1>
+    <p>AI-powered voice booking & customer support automation for health supplement businesses</p>
+    <div class="badge-row">
+      <span class="badge live"><span class="status-dot"></span>Live System</span>
+      <span class="badge voice">Retell AI Voice</span>
+      <span class="badge n8n">n8n Orchestration</span>
+      <span class="badge ai">OpenAI Powered</span>
+    </div>
+  </header>
+
+  <!-- VOICE AGENT -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-voice">🎙️</div>
+      <div>
+        <h3>Voice AI Receptionist</h3>
+      </div>
+    </div>
+    <p class="subtitle">Click below to talk to the AI voice agent. Book a consultation or ask about supplements — just speak naturally.</p>
+    <button class="send btn-voice" id="voiceBtn" onclick="toggleVoiceCall()">
+      🎙️ Talk to AI Receptionist
+    </button>
+    <div class="voice-status" id="voiceStatus"></div>
+  </div>
+
+  <!-- BOOKING TEST -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-booking">📅</div>
+      <div>
+        <h3>Test: Book a Consultation</h3>
+      </div>
+    </div>
+    <p class="subtitle">Type a booking request as if you were a customer. The AI extracts intent, date, health concerns, and suggests a supplement.</p>
+    <label>Customer Message</label>
+    <textarea id="bookingMsg" placeholder="e.g. I've been struggling with focus and low energy lately. Can I book a consultation for next Thursday at 2pm?"></textarea>
+    <div class="input-row">
+      <div><label>Name</label><input id="bookingName" placeholder="Sarah Johnson" value="Sarah Johnson"></div>
+      <div><label>Email</label><input id="bookingEmail" placeholder="sarah@example.com" value="sarah@example.com"></div>
+    </div>
+    <button class="send btn-booking" id="bookingBtn" onclick="testBooking()">
+      📅 Send Booking Request
+    </button>
+    <div class="result" id="bookingResult">
+      <div class="result-label">AI Response</div>
+      <pre id="bookingOutput"></pre>
+    </div>
+  </div>
+
+  <!-- SUPPORT TEST -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-support">💬</div>
+      <div>
+        <h3>Test: Customer Support Query</h3>
+      </div>
+    </div>
+    <p class="subtitle">Type a support question. The AI classifies it by category, priority, sentiment, and generates an auto-response.</p>
+    <label>Customer Message</label>
+    <textarea id="supportMsg" placeholder="e.g. I ordered the focus supplement last week but haven't received it yet. Order number ORD-12345."></textarea>
+    <div class="input-row">
+      <div><label>Name</label><input id="supportName" placeholder="James Wilson" value="James Wilson"></div>
+      <div><label>Order ID (optional)</label><input id="supportOrder" placeholder="ORD-12345" value="ORD-12345"></div>
+    </div>
+    <button class="send btn-support" id="supportBtn" onclick="testSupport()">
+      💬 Send Support Query
+    </button>
+    <div class="result" id="supportResult">
+      <div class="result-label">AI Response</div>
+      <pre id="supportOutput"></pre>
+    </div>
+  </div>
+
+  <!-- ARCHITECTURE -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-icon icon-arch">🏗️</div>
+      <div>
+        <h3>System Architecture</h3>
+      </div>
+    </div>
+    <p class="subtitle">End-to-end flow: voice input to AI-processed response</p>
+    <div class="arch-diagram">
+<span class="highlight4">Customer Voice Call</span> (Retell AI)
+      │
+      ▼
+<span class="highlight">n8n Webhook</span> ← receives structured data
+      │
+      ▼
+<span class="highlight">AI Classify Request</span> → FastAPI on Railway → OpenAI GPT-4o-mini
+      │
+      ├── <span class="highlight3">BOOKING</span> → Extract date, time, health concerns
+      │         → Suggest supplement
+      │         → Confirm booking
+      │
+      └── <span class="highlight2">SUPPORT</span> → Classify category (shipping, billing, product, etc.)
+                → Assess priority & sentiment
+                → Generate auto-response
+                → Route to team if needed
+
+<span style="color:#8892a8;">Error handling: Retry logic (3x) • Fallback responses • Structured logging</span>
+    </div>
+    <div class="tech-stack">
+      <span class="tech-tag">Retell AI (Voice)</span>
+      <span class="tech-tag">n8n (Orchestration)</span>
+      <span class="tech-tag">FastAPI (Backend)</span>
+      <span class="tech-tag">OpenAI GPT-4o-mini</span>
+      <span class="tech-tag">Railway (Hosting)</span>
+      <span class="tech-tag">Python</span>
+      <span class="tech-tag">Webhooks</span>
+      <span class="tech-tag">REST APIs</span>
+    </div>
+  </div>
+
+  <div class="footer">
+    Built by <a href="https://ranjith36963.github.io" target="_blank">Ranjith Maliga Guruprakash</a> — AI/ML Engineer<br>
+    <span style="font-size:0.72rem; margin-top:4px; display:inline-block;">Retell AI • n8n • FastAPI • OpenAI • Railway</span>
+  </div>
+</div>
+
+<script src="https://cdn.retellai.com/retell-client-sdk-web/retell-client-sdk.es.js" type="module"></script>
+<script type="module">
+import { RetellWebClient } from 'https://cdn.retellai.com/retell-client-sdk-web/retell-client-sdk.es.js';
+
+const WEBHOOK_URL = 'https://ranjith36963.app.n8n.cloud/webhook/supplement-reception';
+const BACKEND_URL = 'https://web-production-5b4004.up.railway.app';
+
+let retellClient = null;
+let isCallActive = false;
+
+window.toggleVoiceCall = async function() {
+  const btn = document.getElementById('voiceBtn');
+  const status = document.getElementById('voiceStatus');
+
+  if (isCallActive) {
+    if (retellClient) {
+      retellClient.stopCall();
+    }
+    btn.textContent = '🎙️ Talk to AI Receptionist';
+    btn.classList.remove('active');
+    status.textContent = 'Call ended.';
+    isCallActive = false;
+    return;
+  }
+
+  try {
+    btn.disabled = true;
+    status.textContent = 'Connecting to AI receptionist...';
+
+    const response = await fetch(BACKEND_URL + '/api/retell/create-web-call', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    const data = await response.json();
+
+    retellClient = new RetellWebClient();
+
+    retellClient.on('call_started', () => {
+      status.textContent = '🔴 Call active — speak now!';
+      btn.textContent = '⏹️ End Call';
+      btn.classList.add('active');
+      btn.disabled = false;
+      isCallActive = true;
+    });
+
+    retellClient.on('call_ended', () => {
+      status.textContent = 'Call ended. Check n8n for the processed result.';
+      btn.textContent = '🎙️ Talk to AI Receptionist';
+      btn.classList.remove('active');
+      btn.disabled = false;
+      isCallActive = false;
+    });
+
+    retellClient.on('error', (error) => {
+      status.textContent = 'Error: ' + error.message;
+      btn.textContent = '🎙️ Talk to AI Receptionist';
+      btn.classList.remove('active');
+      btn.disabled = false;
+      isCallActive = false;
+    });
+
+    await retellClient.startCall({ accessToken: data.access_token });
+
+  } catch (err) {
+    status.textContent = 'Connection failed: ' + err.message;
+    btn.textContent = '🎙️ Talk to AI Receptionist';
+    btn.disabled = false;
+    isCallActive = false;
+  }
+};
+
+window.testBooking = async function() {
+  const btn = document.getElementById('bookingBtn');
+  const result = document.getElementById('bookingResult');
+  const output = document.getElementById('bookingOutput');
+  const msg = document.getElementById('bookingMsg').value;
+  const name = document.getElementById('bookingName').value;
+  const email = document.getElementById('bookingEmail').value;
+
+  if (!msg.trim()) { alert('Please enter a message'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Processing...';
+  result.classList.remove('show');
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, customer_name: name, customer_email: email })
+    });
+    const data = await res.json();
+    output.textContent = JSON.stringify(data, null, 2);
+    result.classList.add('show');
+  } catch (err) {
+    output.textContent = 'Error: ' + err.message;
+    result.classList.add('show');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '📅 Send Booking Request';
+};
+
+window.testSupport = async function() {
+  const btn = document.getElementById('supportBtn');
+  const result = document.getElementById('supportResult');
+  const output = document.getElementById('supportOutput');
+  const msg = document.getElementById('supportMsg').value;
+  const name = document.getElementById('supportName').value;
+  const order = document.getElementById('supportOrder').value;
+
+  if (!msg.trim()) { alert('Please enter a message'); return; }
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Processing...';
+  result.classList.remove('show');
+
+  try {
+    const res = await fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, customer_name: name, order_id: order })
+    });
+    const data = await res.json();
+    output.textContent = JSON.stringify(data, null, 2);
+    result.classList.add('show');
+  } catch (err) {
+    output.textContent = 'Error: ' + err.message;
+    result.classList.add('show');
+  }
+
+  btn.disabled = false;
+  btn.textContent = '💬 Send Support Query';
+};
+</script>
+
+</body>
+</html>

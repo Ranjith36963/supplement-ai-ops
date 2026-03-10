@@ -68,6 +68,7 @@ async def root():
             "booking": "/api/booking/process",
             "support": "/api/support/triage",
             "content": "/api/content/generate",
+            "retell_call": "/api/retell/create-web-call",
             "health": "/health"
         }
     }
@@ -341,6 +342,46 @@ async def global_exception_handler(request: Request, exc: Exception):
             "timestamp": datetime.utcnow().isoformat()
         }
     )
+
+# ─── RETELL AI: Create Web Call ───
+
+@app.post("/api/retell/create-web-call")
+async def create_retell_web_call():
+    """
+    Creates a Retell web call and returns the access token.
+    Keeps the API key secure on the server side.
+    """
+    import httpx
+
+    retell_api_key = os.getenv("RETELL_API_KEY")
+    retell_agent_id = os.getenv("RETELL_AGENT_ID")
+
+    if not retell_api_key or not retell_agent_id:
+        raise HTTPException(status_code=500, detail="Retell credentials not configured")
+
+    try:
+        async with httpx.AsyncClient() as client_http:
+            response = await client_http.post(
+                "https://api.retellai.com/v2/create-web-call",
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {retell_api_key}"
+                },
+                json={"agent_id": retell_agent_id},
+                timeout=10.0
+            )
+            data = response.json()
+
+            if response.status_code != 201 and response.status_code != 200:
+                logger.error(f"Retell API error: {data}")
+                raise HTTPException(status_code=response.status_code, detail="Failed to create web call")
+
+            return {"access_token": data.get("access_token"), "call_id": data.get("call_id")}
+
+    except httpx.RequestError as e:
+        logger.error(f"Retell connection error: {e}")
+        raise HTTPException(status_code=500, detail="Could not connect to Retell AI")
+
 
 if __name__ == "__main__":
     import uvicorn
