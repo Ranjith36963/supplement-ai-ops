@@ -410,7 +410,7 @@ window.testBooking = async function() {
   result.classList.remove('show');
 
   try {
-    const res = await fetch(WEBHOOK_URL, {
+    const res = await fetch(BACKEND_URL + '/api/booking/process', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: msg, customer_name: name, customer_email: email })
@@ -442,7 +442,7 @@ window.testSupport = async function() {
   result.classList.remove('show');
 
   try {
-    const res = await fetch(WEBHOOK_URL, {
+    const res = await fetch(BACKEND_URL + '/api/support/triage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: msg, customer_name: name, order_id: order })
