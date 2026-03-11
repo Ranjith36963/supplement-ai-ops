@@ -73,21 +73,25 @@ Reception Webhook → AI Classify Request → Booking or Support?
 ```
 
 **Nodes:**
-- **Reception Webhook** — Single POST endpoint receiving all requests
-- **AI Classify Request** — Sends to FastAPI backend, OpenAI determines intent
+- **Reception Webhook** — Single POST endpoint (`/webhook/supplement-reception`) receiving all requests
+- **AI Classify Request** — Calls `/api/booking/process` on Railway backend, OpenAI determines intent
 - **Booking or Support?** — IF node routes based on intent
-- **Process Booking** — Extracts date, time, health concerns, supplement suggestion
-- **AI Support Triage** — Classifies category, priority, sentiment, generates response
-- **Respond** — Returns structured JSON to caller
+- **Process Booking** → **Respond - Booking Confirmed** — Returns structured booking data
+- **AI Support Triage** — Calls `/api/support/triage` on Railway backend → **Process Support Query** → **Respond - Support Handled**
 
 ---
 
 ## Retell AI Voice Agent
 
 **Agent:** Supplement Consultation Booking
+**Agent ID:** `agent_37a7d4939e00d23cd9a4dd1e8b`
+**Preview:** [Try voice agent →](https://agent.retellai.com/preview/agent_37a7d4939e00d23cd9a4dd1e8b)
+**Voice:** Cimo | **Language:** English | **Execution Mode:** Rigid Mode
 
-**Conversation Flow:**
-1. **Welcome** → Greets customer, asks for name
+**Global Prompt:** Friendly booking assistant for a health supplement company, handling consultations for focus, energy, mood, and immune support.
+
+**Conversation Flow (4 nodes):**
+1. **Welcome Node** → Greets customer, asks for name
 2. **Health Concerns** → Asks what they need help with (focus, energy, mood, immune)
 3. **Preferred Time** → Asks when they'd like their consultation
 4. **Confirm Booking** → Triggers n8n webhook via custom function, confirms appointment
@@ -109,16 +113,30 @@ Reception Webhook → AI Classify Request → Booking or Support?
 
 ## Testing
 
-**Test Booking:**
+**Test via n8n webhook (full pipeline):**
+
 ```bash
 curl -X POST https://ranjith36963.app.n8n.cloud/webhook/supplement-reception \
   -H "Content-Type: application/json" \
   -d '{"message": "I need help with focus and energy. Can I book for Thursday at 2pm?", "customer_name": "Sarah Johnson", "customer_email": "sarah@example.com"}'
 ```
 
-**Test Support:**
 ```bash
 curl -X POST https://ranjith36963.app.n8n.cloud/webhook/supplement-reception \
+  -H "Content-Type: application/json" \
+  -d '{"message": "I ordered the focus supplement last week but havent received it. Order ORD-12345.", "customer_name": "James Wilson", "order_id": "ORD-12345"}'
+```
+
+**Test backend directly:**
+
+```bash
+curl -X POST https://web-production-5b4004.up.railway.app/api/booking/process \
+  -H "Content-Type: application/json" \
+  -d '{"message": "I need help with focus and energy. Can I book for Thursday at 2pm?", "customer_name": "Sarah Johnson", "customer_email": "sarah@example.com"}'
+```
+
+```bash
+curl -X POST https://web-production-5b4004.up.railway.app/api/support/triage \
   -H "Content-Type: application/json" \
   -d '{"message": "I ordered the focus supplement last week but havent received it. Order ORD-12345.", "customer_name": "James Wilson", "order_id": "ORD-12345"}'
 ```
@@ -142,13 +160,13 @@ curl -X POST https://ranjith36963.app.n8n.cloud/webhook/supplement-reception \
 
 ```
 supplement-ai-ops/
-├── index.html              # Live demo page (GitHub Pages)
-├── backend/
-│   ├── main.py             # FastAPI app (booking, support, Retell endpoints)
-│   ├── requirements.txt    # Python dependencies
-│   ├── Procfile            # Railway start command
-│   └── railway.json        # Railway config
-└── README.md               # This file
+├── index.html          # Live demo page (GitHub Pages)
+├── main.py             # FastAPI app (booking, support, Retell endpoints)
+├── requirements.txt    # Python dependencies
+├── Procfile            # Railway start command
+├── railway.json        # Railway config
+├── .nojekyll           # Bypass Jekyll processing on GitHub Pages
+└── README.md           # This file
 ```
 
 ---

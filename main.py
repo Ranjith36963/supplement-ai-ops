@@ -1,13 +1,13 @@
 """
 AI-Powered Supplement Operations Backend
-Handles: Booking Processing, Customer Support Triage, Content Generation
+Handles: Booking Processing, Customer Support Triage
 Built with FastAPI + OpenAI
 """
 
 import os
 import json
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # ─── App Setup ───
 app = FastAPI(
     title="Supplement AI Operations API",
-    description="AI-powered booking, customer support triage, and content generation for supplement businesses",
+    description="AI-powered booking and customer support triage for supplement businesses",
     version="1.0.0"
 )
 
@@ -50,12 +50,6 @@ class SupportRequest(BaseModel):
     customer_email: Optional[str] = None
     order_id: Optional[str] = None
 
-class ContentRequest(BaseModel):
-    brief: str
-    product_category: Optional[str] = "focus"  # focus, energy, mood, immune
-    content_types: Optional[list] = ["email", "social_media", "product_description"]
-    tone: Optional[str] = "professional"
-
 # ─── Health Check ───
 
 @app.get("/")
@@ -67,7 +61,6 @@ async def root():
         "endpoints": {
             "booking": "/api/booking/process",
             "support": "/api/support/triage",
-            "content": "/api/content/generate",
             "retell_call": "/api/retell/create-web-call",
             "health": "/health"
         }
@@ -77,7 +70,7 @@ async def root():
 async def health():
     return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
 
-# ─── WORKFLOW 1: Smart Consultation Booking ───
+# ─── Booking: Smart Consultation Booking ───
 
 @app.post("/api/booking/process")
 async def process_booking(request: BookingRequest):
@@ -152,7 +145,7 @@ Today's date is """ + datetime.utcnow().strftime("%Y-%m-%d")
         raise HTTPException(status_code=500, detail=f"Processing error: {str(e)}")
 
 
-# ─── WORKFLOW 2: Customer Support Triage & Auto-Response ───
+# ─── Support: Customer Support Triage & Auto-Response ───
 
 @app.post("/api/support/triage")
 async def triage_support(request: SupportRequest):
@@ -237,96 +230,6 @@ Never make medical claims about supplements."""
     except Exception as e:
         logger.error(f"Triage error: {e}")
         raise HTTPException(status_code=500, detail=f"Triage error: {str(e)}")
-
-
-# ─── WORKFLOW 3: Content Generation Pipeline ───
-
-@app.post("/api/content/generate")
-async def generate_content(request: ContentRequest):
-    """
-    Generate multiple content variants from a brief.
-    Outputs: email copy, social media posts, product descriptions.
-    Each variant is versioned and formatted for review.
-    """
-    logger.info(f"Content request received: {request.brief[:100]}")
-
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "system",
-                    "content": f"""You are a content specialist for a health supplement company.
-Generate content variants based on the brief provided. Return ONLY valid JSON:
-
-{{
-    "content_variants": {{
-        "email": {{
-            "subject_line": "Compelling email subject",
-            "preview_text": "Preview text for email clients (50 chars)",
-            "body": "Full email body copy (HTML-friendly, 150-200 words)",
-            "cta": "Call-to-action text"
-        }},
-        "social_media": {{
-            "instagram": "Instagram caption with relevant hashtags (under 200 words)",
-            "twitter": "Tweet-length post (under 280 chars)",
-            "facebook": "Facebook post (100-150 words)",
-            "linkedin": "Professional LinkedIn post (150-200 words)"
-        }},
-        "product_description": {{
-            "short": "Short product description (50 words)",
-            "medium": "Medium description (100 words)",
-            "long": "Detailed description (200 words)"
-        }}
-    }},
-    "meta": {{
-        "target_audience": "Identified target audience",
-        "key_benefits": ["benefit1", "benefit2", "benefit3"],
-        "tone_used": "{request.tone}",
-        "seo_keywords": ["keyword1", "keyword2", "keyword3"]
-    }}
-}}
-
-Product category focus: {request.product_category}
-Tone: {request.tone}
-IMPORTANT: Never make medical claims. Use phrases like "may help support", "designed to help".
-Follow UK advertising standards for supplements."""
-                },
-                {"role": "user", "content": request.brief}
-            ],
-            temperature=0.7,
-            max_tokens=1500
-        )
-
-        result_text = response.choices[0].message.content.strip()
-        result_text = result_text.replace("```json", "").replace("```", "").strip()
-        result = json.loads(result_text)
-
-        # Add versioning metadata
-        version_id = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-
-        return {
-            "status": "success",
-            "content": result,
-            "version_id": version_id,
-            "brief": request.brief,
-            "product_category": request.product_category,
-            "generated_at": datetime.utcnow().isoformat(),
-            "review_status": "pending_approval",
-            "content_types_generated": list(result.get("content_variants", {}).keys())
-        }
-
-    except json.JSONDecodeError as e:
-        logger.error(f"JSON parse error in content gen: {e}")
-        return {
-            "status": "fallback",
-            "error": "Content generation produced invalid format. Retrying recommended.",
-            "brief": request.brief,
-            "processed_at": datetime.utcnow().isoformat()
-        }
-    except Exception as e:
-        logger.error(f"Content generation error: {e}")
-        raise HTTPException(status_code=500, detail=f"Content generation error: {str(e)}")
 
 
 # ─── Global Error Handler ───
