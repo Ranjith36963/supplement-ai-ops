@@ -323,19 +323,14 @@ button.send:hover:not(:disabled) { transform: translateY(-1px); }
   </div>
 </div>
 
-<script src="https://cdn.retellai.com/retell-client-sdk-web/retell-client-sdk.es.js" type="module"></script>
-<script type="module">
-import { RetellWebClient } from 'https://cdn.retellai.com/retell-client-sdk-web/retell-client-sdk.es.js';
+<script>
+var BACKEND_URL = 'https://web-production-5b4004.up.railway.app';
+var retellClient = null;
+var isCallActive = false;
 
-const WEBHOOK_URL = 'https://ranjith36963.app.n8n.cloud/webhook/supplement-reception';
-const BACKEND_URL = 'https://web-production-5b4004.up.railway.app';
-
-let retellClient = null;
-let isCallActive = false;
-
-window.toggleVoiceCall = async function() {
-  const btn = document.getElementById('voiceBtn');
-  const status = document.getElementById('voiceStatus');
+async function toggleVoiceCall() {
+  var btn = document.getElementById('voiceBtn');
+  var status = document.getElementById('voiceStatus');
 
   if (isCallActive) {
     if (retellClient) {
@@ -352,16 +347,18 @@ window.toggleVoiceCall = async function() {
     btn.disabled = true;
     status.textContent = 'Connecting to AI receptionist...';
 
-    const response = await fetch(BACKEND_URL + '/api/retell/create-web-call', {
+    var response = await fetch(BACKEND_URL + '/api/retell/create-web-call', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
 
-    const data = await response.json();
+    var data = await response.json();
 
+    var module = await import('https://cdn.retellai.com/retell-client-sdk-web/retell-client-sdk.es.js');
+    var RetellWebClient = module.RetellWebClient;
     retellClient = new RetellWebClient();
 
-    retellClient.on('call_started', () => {
+    retellClient.on('call_started', function() {
       status.textContent = '🔴 Call active — speak now!';
       btn.textContent = '⏹️ End Call';
       btn.classList.add('active');
@@ -369,7 +366,7 @@ window.toggleVoiceCall = async function() {
       isCallActive = true;
     });
 
-    retellClient.on('call_ended', () => {
+    retellClient.on('call_ended', function() {
       status.textContent = 'Call ended. Check n8n for the processed result.';
       btn.textContent = '🎙️ Talk to AI Receptionist';
       btn.classList.remove('active');
@@ -377,7 +374,7 @@ window.toggleVoiceCall = async function() {
       isCallActive = false;
     });
 
-    retellClient.on('error', (error) => {
+    retellClient.on('error', function(error) {
       status.textContent = 'Error: ' + error.message;
       btn.textContent = '🎙️ Talk to AI Receptionist';
       btn.classList.remove('active');
@@ -393,15 +390,15 @@ window.toggleVoiceCall = async function() {
     btn.disabled = false;
     isCallActive = false;
   }
-};
+}
 
-window.testBooking = async function() {
-  const btn = document.getElementById('bookingBtn');
-  const result = document.getElementById('bookingResult');
-  const output = document.getElementById('bookingOutput');
-  const msg = document.getElementById('bookingMsg').value;
-  const name = document.getElementById('bookingName').value;
-  const email = document.getElementById('bookingEmail').value;
+async function testBooking() {
+  var btn = document.getElementById('bookingBtn');
+  var result = document.getElementById('bookingResult');
+  var output = document.getElementById('bookingOutput');
+  var msg = document.getElementById('bookingMsg').value;
+  var name = document.getElementById('bookingName').value;
+  var email = document.getElementById('bookingEmail').value;
 
   if (!msg.trim()) { alert('Please enter a message'); return; }
 
@@ -410,12 +407,12 @@ window.testBooking = async function() {
   result.classList.remove('show');
 
   try {
-    const res = await fetch(BACKEND_URL + '/api/booking/process', {
+    var res = await fetch(BACKEND_URL + '/api/booking/process', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: msg, customer_name: name, customer_email: email })
     });
-    const data = await res.json();
+    var data = await res.json();
     output.textContent = JSON.stringify(data, null, 2);
     result.classList.add('show');
   } catch (err) {
@@ -425,15 +422,15 @@ window.testBooking = async function() {
 
   btn.disabled = false;
   btn.textContent = '📅 Send Booking Request';
-};
+}
 
-window.testSupport = async function() {
-  const btn = document.getElementById('supportBtn');
-  const result = document.getElementById('supportResult');
-  const output = document.getElementById('supportOutput');
-  const msg = document.getElementById('supportMsg').value;
-  const name = document.getElementById('supportName').value;
-  const order = document.getElementById('supportOrder').value;
+async function testSupport() {
+  var btn = document.getElementById('supportBtn');
+  var result = document.getElementById('supportResult');
+  var output = document.getElementById('supportOutput');
+  var msg = document.getElementById('supportMsg').value;
+  var name = document.getElementById('supportName').value;
+  var order = document.getElementById('supportOrder').value;
 
   if (!msg.trim()) { alert('Please enter a message'); return; }
 
@@ -442,12 +439,12 @@ window.testSupport = async function() {
   result.classList.remove('show');
 
   try {
-    const res = await fetch(BACKEND_URL + '/api/support/triage', {
+    var res = await fetch(BACKEND_URL + '/api/support/triage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ message: msg, customer_name: name, order_id: order })
     });
-    const data = await res.json();
+    var data = await res.json();
     output.textContent = JSON.stringify(data, null, 2);
     result.classList.add('show');
   } catch (err) {
@@ -457,7 +454,7 @@ window.testSupport = async function() {
 
   btn.disabled = false;
   btn.textContent = '💬 Send Support Query';
-};
+}
 </script>
 
 </body>
