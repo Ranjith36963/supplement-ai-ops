@@ -354,7 +354,7 @@ async function toggleVoiceCall() {
 
     var data = await response.json();
 
-    var module = await import('https://cdn.retellai.com/retell-client-sdk-web/retell-client-sdk.es.js');
+    var module = await import('https://cdn.jsdelivr.net/npm/retell-client-js-sdk@2.0.7/+esm');
     var RetellWebClient = module.RetellWebClient;
     retellClient = new RetellWebClient();
 
