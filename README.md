@@ -2,7 +2,7 @@
 
 AI-powered voice booking & customer support automation for health supplement businesses.
 
-**One unified system:** Customer calls via Retell AI voice agent → n8n orchestrates → FastAPI + OpenAI processes → booking confirmed or support query handled.
+**One unified system:** Customer calls via Retell AI voice agent → n8n orchestrates → FastAPI + OpenAI processes → Google Calendar books event + Slack notifies team.
 
 ---
 
@@ -24,60 +24,80 @@ n8n Webhook (supplement-reception)
 AI Classify Request → FastAPI on Railway → OpenAI GPT-4o-mini
         │
         ├── BOOKING → Extract date, time, health concerns
-        │             → Suggest supplement → Confirm booking
+        │             → Suggest supplement
+        │             → Google Calendar: Create Event
+        │             → Slack #bookings: Notification
+        │             → Confirm booking
         │
         └── SUPPORT → Classify category (shipping, billing, product, etc.)
                     → Assess priority & sentiment
-                    → Generate auto-response → Route to team if needed
-
-Error handling: Retry logic (3x) • Fallback responses • Structured logging
+                    → Generate auto-response
+                    → Slack #support: Notification
+                    → Route to team if needed
 ```
 
 ## How It Works
 
 | Input Method | What Happens |
 |-------------|-------------|
-| Voice call (Retell AI) | Customer speaks naturally → AI receptionist collects name, health concerns, preferred time → triggers n8n webhook → books consultation |
-| Text (Booking) | Customer sends booking request → AI extracts intent, date, time, health concerns → suggests supplement → confirms booking |
-| Text (Support) | Customer sends support query → AI classifies by category, priority, sentiment → generates auto-response → routes if needed |
+| Voice call (Retell AI) | Customer speaks naturally → AI receptionist collects name, health concerns, preferred time → triggers n8n webhook → books consultation → creates Google Calendar event → notifies Slack |
+| Text (Booking) | Customer sends booking request → AI extracts intent, date, time, health concerns → suggests supplement → creates calendar event → Slack notification → confirms booking |
+| Text (Support) | Customer sends support query → AI classifies by category, priority, sentiment → generates auto-response → Slack notification → routes if needed |
 
-All three inputs hit the **same n8n webhook** — the AI backend decides whether it's a booking or support request and routes accordingly.
+All inputs hit the **same n8n webhook** — the AI backend decides whether it's a booking or support request and routes accordingly.
 
 ---
 
 ## Tech Stack
 
 - **Voice AI:** Retell AI (conversation flow agent, browser-based calls)
-- **Orchestration:** n8n (single webhook, smart routing via IF node)
+- **Orchestration:** n8n (single workflow, smart routing via IF node)
 - **AI Backend:** FastAPI + Python (intent extraction, triage, suggestions)
 - **AI Model:** OpenAI GPT-4o-mini (cost-effective, fast)
+- **Calendar:** Google Calendar (automatic event creation on booking)
+- **Notifications:** Slack (`#bookings` and `#support` channel notifications)
 - **Hosting:** Railway (backend API, auto-deploy from GitHub)
-- **Error Handling:** Retries (3x), fallback responses, structured logging
+- **Demo:** GitHub Pages (static demo page)
 
 ---
 
-## n8n Workflow: Supplement AI Reception
+## n8n Workflow: Supplement AI Reception — Booking & Support
 
 One workflow handles everything:
 
 ```
 Reception Webhook → AI Classify Request → Booking or Support?
                                               │
-                                    ┌─── YES (Booking) ───┐
-                                    │                      │
-                              Process Booking    Respond - Booking Confirmed
-                                    │
-                                    └─── NO (Support) ────┐
-                                                           │
-                              AI Support Triage → Process Support Query → Respond - Support Handled
+                                    ┌─── YES (Booking) ──────────────────────┐
+                                    │                                         │
+                              Process Booking                                 │
+                                    │                                         │
+                                    ├── Google Calendar Create Event           │
+                                    ├── Slack Booking Notification             │
+                                    │                                         │
+                                    └── Respond - Booking Confirmed ──────────┘
+
+                                    ┌─── NO (Support) ───────────────────────┐
+                                    │                                         │
+                              AI Support Triage → Process Support Query        │
+                                    │                                         │
+                                    ├── Slack Support Notification             │
+                                    │                                         │
+                                    └── Respond - Support Handled ────────────┘
 ```
 
 **Nodes:**
 - **Reception Webhook** — Single POST endpoint (`/webhook/supplement-reception`) receiving all requests
 - **AI Classify Request** — Calls `/api/booking/process` on Railway backend, OpenAI determines intent
 - **Booking or Support?** — IF node routes based on intent
-- **Process Booking** → **Respond - Booking Confirmed** — Returns structured booking data
-- **AI Support Triage** — Calls `/api/support/triage` on Railway backend → **Process Support Query** → **Respond - Support Handled**
+- **Process Booking** — Extracts structured booking data from AI response
+- **Google Calendar Create Event** — Creates a calendar event with customer name, health concerns, and preferred time
+- **Slack Booking Notification** — Posts to `#bookings` channel with booking details
+- **Respond** — Returns confirmation to caller
+- **AI Support Triage** — Calls `/api/support/triage` on Railway backend
+- **Process Support Query** — Structures triage results
+- **Slack Support Notification** — Posts to `#support` channel with query details and priority
+- **Respond** — Returns support response to caller
 
 ---
 
@@ -108,6 +128,17 @@ Reception Webhook → AI Classify Request → Booking or Support?
 | `/api/support/triage` | POST | Triage and classify support queries |
 | `/api/retell/create-web-call` | POST | Create browser-based Retell voice call |
 | `/health` | GET | Health check |
+
+---
+
+## Integrations
+
+| Service | Purpose | Channel/Details |
+|---------|---------|-----------------|
+| Google Calendar | Automatic event creation | Creates consultation events on confirmed bookings |
+| Slack | Team notifications | `#bookings` for new bookings, `#support` for support queries |
+| Retell AI | Voice agent | Browser-based calls, triggers n8n webhook on booking |
+| OpenAI | AI processing | GPT-4o-mini for intent extraction and triage |
 
 ---
 
@@ -151,6 +182,8 @@ curl -X POST https://web-production-5b4004.up.railway.app/api/support/triage \
 | Retell AI for voice | Browser-based testing, no phone costs for demo |
 | Separate FastAPI backend | Keeps AI logic testable, versionable, reusable |
 | GPT-4o-mini | Cost-effective for production, fast enough for real-time |
+| Google Calendar integration | Bookings appear on actual calendar, no manual data entry |
+| Slack notifications | Team gets instant alerts, separate channels for booking vs support |
 | Retry logic on HTTP nodes | Production systems must handle transient failures |
 | Fallback responses | Users always get a response, even if AI fails |
 
