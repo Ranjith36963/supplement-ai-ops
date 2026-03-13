@@ -62,6 +62,7 @@ async def root():
             "booking": "/api/booking/process",
             "support": "/api/support/triage",
             "retell_call": "/api/retell/create-web-call",
+            "retell_webhook": "/api/retell/webhook",
             "health": "/health"
         }
     }
@@ -284,6 +285,67 @@ async def create_retell_web_call():
     except httpx.RequestError as e:
         logger.error(f"Retell connection error: {e}")
         raise HTTPException(status_code=500, detail="Could not connect to Retell AI")
+
+
+# ─── RETELL AI: Post-Call Webhook ───
+
+async def forward_call_to_n8n(transcript: str, call_id: str, metadata: dict):
+    """Background task: forward voice call transcript to n8n for processing."""
+    import httpx
+
+    n8n_url = os.getenv(
+        "N8N_WEBHOOK_URL",
+        "https://ranjith36963.app.n8n.cloud/webhook/supplement-reception"
+    )
+
+    customer_name = metadata.get("customer_name", "Voice Call Customer")
+    customer_email = metadata.get("customer_email", "")
+
+    payload = {
+        "message": transcript,
+        "customer_name": customer_name,
+        "customer_email": customer_email,
+        "source": "voice_call",
+        "call_id": call_id
+    }
+
+    try:
+        async with httpx.AsyncClient() as http:
+            resp = await http.post(n8n_url, json=payload, timeout=15.0)
+            logger.info(f"n8n forwarding result: status={resp.status_code}, call_id={call_id}")
+    except Exception as e:
+        logger.error(f"Failed to forward call {call_id} to n8n: {e}")
+
+
+@app.post("/api/retell/webhook")
+async def retell_webhook(request: Request):
+    """
+    Receives Retell AI webhook events (call_ended, call_analyzed).
+    Extracts the call transcript and forwards it to n8n for full pipeline processing
+    (AI classification, Google Calendar event creation, Slack notification).
+    """
+    import asyncio
+
+    body = await request.json()
+    event = body.get("event", "")
+    call = body.get("call", {})
+    call_id = call.get("call_id", "unknown")
+
+    logger.info(f"Retell webhook: event={event}, call_id={call_id}")
+
+    if event != "call_ended":
+        return {"status": "ignored", "event": event}
+
+    transcript = call.get("transcript", "")
+    if not transcript or len(transcript.strip()) < 10:
+        logger.warning(f"Skipping call {call_id}: empty or too short transcript")
+        return {"status": "skipped", "reason": "no_transcript"}
+
+    metadata = call.get("metadata", {})
+
+    asyncio.create_task(forward_call_to_n8n(transcript, call_id, metadata))
+
+    return {"status": "accepted", "call_id": call_id}
 
 
 if __name__ == "__main__":
