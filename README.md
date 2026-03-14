@@ -127,6 +127,7 @@ Reception Webhook → AI Classify Request → Booking or Support?
 | `/api/booking/process` | POST | Process booking requests via AI |
 | `/api/support/triage` | POST | Triage and classify support queries |
 | `/api/retell/create-web-call` | POST | Create browser-based Retell voice call |
+| `/api/retell/webhook` | POST | Receive Retell post-call events, forward transcript to n8n |
 | `/health` | GET | Health check |
 
 ---
