@@ -148,13 +148,13 @@ Reception Webhook → AI Classify Request → Booking or Support?
 **Test via n8n webhook (full pipeline):**
 
 ```bash
-curl -X POST https://ranjith36963.app.n8n.cloud/webhook/supplement-reception \
+curl -X POST https://ranjith369.app.n8n.cloud/webhook/supplement-reception \
   -H "Content-Type: application/json" \
   -d '{"message": "I need help with focus and energy. Can I book for Thursday at 2pm?", "customer_name": "Sarah Johnson", "customer_email": "sarah@example.com"}'
 ```
 
 ```bash
-curl -X POST https://ranjith36963.app.n8n.cloud/webhook/supplement-reception \
+curl -X POST https://ranjith369.app.n8n.cloud/webhook/supplement-reception \
   -H "Content-Type: application/json" \
   -d '{"message": "I ordered the focus supplement last week but havent received it. Order ORD-12345.", "customer_name": "James Wilson", "order_id": "ORD-12345"}'
 ```
@@ -162,13 +162,13 @@ curl -X POST https://ranjith36963.app.n8n.cloud/webhook/supplement-reception \
 **Test backend directly:**
 
 ```bash
-curl -X POST https://web-production-5b4004.up.railway.app/api/booking/process \
+curl -X POST https://supplement-ai-ops-production.up.railway.app/api/booking/process \
   -H "Content-Type: application/json" \
   -d '{"message": "I need help with focus and energy. Can I book for Thursday at 2pm?", "customer_name": "Sarah Johnson", "customer_email": "sarah@example.com"}'
 ```
 
 ```bash
-curl -X POST https://web-production-5b4004.up.railway.app/api/support/triage \
+curl -X POST https://supplement-ai-ops-production.up.railway.app/api/support/triage \
   -H "Content-Type: application/json" \
   -d '{"message": "I ordered the focus supplement last week but havent received it. Order ORD-12345.", "customer_name": "James Wilson", "order_id": "ORD-12345"}'
 ```

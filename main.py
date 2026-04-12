@@ -295,7 +295,7 @@ async def forward_call_to_n8n(transcript: str, call_id: str, metadata: dict):
 
     n8n_url = os.getenv(
         "N8N_WEBHOOK_URL",
-        "https://ranjith36963.app.n8n.cloud/webhook/supplement-reception"
+        "https://ranjith369.app.n8n.cloud/webhook/supplement-reception"
     )
 
     customer_name = metadata.get("customer_name", "Voice Call Customer")
