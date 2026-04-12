@@ -1,0 +1,339 @@
+{
+  "name": "Supplement AI Reception — Booking & Support",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "supplement-reception",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "f7c8a9b0-1234-4abc-8def-100000000001",
+      "name": "Reception Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "webhookId": "f7c8a9b0-wh01"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://supplement-ai-ops-production.up.railway.app/api/booking/process",
+        "sendBody": true,
+        "specifyBody": "keypairValue",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.body.message }}"
+            },
+            {
+              "name": "customer_name",
+              "value": "={{ $json.body.customer_name }}"
+            },
+            {
+              "name": "customer_email",
+              "value": "={{ $json.body.customer_email }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f7c8a9b0-1234-4abc-8def-100000000002",
+      "name": "AI Classify Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300],
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-is-booking",
+              "leftValue": "={{ $json.booking_data.intent }}",
+              "rightValue": "book_consultation",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f7c8a9b0-1234-4abc-8def-100000000003",
+      "name": "Booking or Support?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [740, 300]
+    },
+    {
+      "parameters": {
+        "mode": "manual",
+        "duplicateItem": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "set-customer-name",
+              "name": "customer_name",
+              "value": "={{ $('AI Classify Request').item.json.customer_name }}",
+              "type": "string"
+            },
+            {
+              "id": "set-customer-email",
+              "name": "customer_email",
+              "value": "={{ $('AI Classify Request').item.json.customer_email }}",
+              "type": "string"
+            },
+            {
+              "id": "set-intent",
+              "name": "intent",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.intent }}",
+              "type": "string"
+            },
+            {
+              "id": "set-preferred-date",
+              "name": "preferred_date",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.preferred_date }}",
+              "type": "string"
+            },
+            {
+              "id": "set-preferred-time",
+              "name": "preferred_time",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.preferred_time }}",
+              "type": "string"
+            },
+            {
+              "id": "set-health-concerns",
+              "name": "health_concerns",
+              "value": "={{ ($('AI Classify Request').item.json.booking_data.health_concerns || []).join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "set-urgency",
+              "name": "urgency",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.urgency }}",
+              "type": "string"
+            },
+            {
+              "id": "set-summary",
+              "name": "summary",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "set-supplement",
+              "name": "supplement",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.supplement_suggestion.primary }}",
+              "type": "string"
+            },
+            {
+              "id": "set-supplement-reason",
+              "name": "supplement_reason",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.supplement_suggestion.reason }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f7c8a9b0-1234-4abc-8def-100000000004",
+      "name": "Process Booking",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [980, 160]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "SLACK_BOOKINGS_WEBHOOK_URL",
+        "sendBody": true,
+        "specifyBody": "keypairValue",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=\ud83d\udcc5 *New Booking Request*\n*Customer:* {{ $json.customer_name || 'N/A' }}\n*Email:* {{ $json.customer_email || 'N/A' }}\n*Date:* {{ $json.preferred_date || 'TBD' }} at {{ $json.preferred_time || 'TBD' }}\n*Health Concerns:* {{ $json.health_concerns || 'N/A' }}\n*Urgency:* {{ $json.urgency || 'N/A' }}\n*Supplement:* {{ $json.supplement || 'N/A' }} \u2014 {{ $json.supplement_reason || '' }}\n*Summary:* {{ $json.summary || 'N/A' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f7c8a9b0-1234-4abc-8def-100000000005",
+      "name": "Slack Booking Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1240, 60]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'booking_confirmed', customer_name: $json.customer_name, intent: $json.intent, preferred_date: $json.preferred_date, preferred_time: $json.preferred_time, health_concerns: $json.health_concerns, urgency: $json.urgency, supplement: $json.supplement, supplement_reason: $json.supplement_reason, summary: $json.summary, message: 'Your consultation has been booked successfully.' }) }}"
+      },
+      "id": "f7c8a9b0-1234-4abc-8def-100000000006",
+      "name": "Respond - Booking Confirmed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1240, 260]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://supplement-ai-ops-production.up.railway.app/api/support/triage",
+        "sendBody": true,
+        "specifyBody": "keypairValue",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $('Reception Webhook').item.json.body.message }}"
+            },
+            {
+              "name": "customer_name",
+              "value": "={{ $('Reception Webhook').item.json.body.customer_name }}"
+            },
+            {
+              "name": "customer_email",
+              "value": "={{ $('Reception Webhook').item.json.body.customer_email }}"
+            },
+            {
+              "name": "order_id",
+              "value": "={{ $('Reception Webhook').item.json.body.order_id }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f7c8a9b0-1234-4abc-8def-100000000007",
+      "name": "AI Support Triage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [980, 440],
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "SLACK_SUPPORT_WEBHOOK_URL",
+        "sendBody": true,
+        "specifyBody": "keypairValue",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "text",
+              "value": "=\ud83c\udfa7 *New Support Query*\n*Customer:* {{ $json.customer_name || 'N/A' }}\n*Category:* {{ $json.triage_data.category || 'N/A' }}\n*Priority:* {{ $json.triage_data.priority || 'N/A' }}\n*Sentiment:* {{ $json.triage_data.sentiment || 'N/A' }}\n*Action:* {{ $json.triage_data.suggested_action || 'N/A' }}\n*Response:* {{ $json.triage_data.auto_response || 'N/A' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "f7c8a9b0-1234-4abc-8def-100000000008",
+      "name": "Slack Support Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1240, 340]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'support_handled', customer_name: $json.customer_name, category: $json.triage_data.category, priority: $json.triage_data.priority, sentiment: $json.triage_data.sentiment, auto_response: $json.triage_data.auto_response, suggested_action: $json.triage_data.suggested_action, routing: $json.routing, auto_reply_ready: $json.auto_reply_ready }) }}"
+      },
+      "id": "f7c8a9b0-1234-4abc-8def-100000000009",
+      "name": "Respond - Support Handled",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1240, 540]
+    }
+  ],
+  "connections": {
+    "Reception Webhook": {
+      "main": [
+        [
+          {
+            "node": "AI Classify Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Classify Request": {
+      "main": [
+        [
+          {
+            "node": "Booking or Support?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Booking or Support?": {
+      "main": [
+        [
+          {
+            "node": "Process Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Support Triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Booking": {
+      "main": [
+        [
+          {
+            "node": "Slack Booking Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond - Booking Confirmed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Support Triage": {
+      "main": [
+        [
+          {
+            "node": "Slack Support Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond - Support Handled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "1",
+  "meta": {
+    "instanceId": "supplement-ai-ops"
+  },
+  "tags": []
+}
