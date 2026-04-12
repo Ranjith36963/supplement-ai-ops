@@ -20,23 +20,8 @@
         "method": "POST",
         "url": "https://supplement-ai-ops-production.up.railway.app/api/booking/process",
         "sendBody": true,
-        "specifyBody": "keypairValue",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "message",
-              "value": "={{ $json.body.message }}"
-            },
-            {
-              "name": "customer_name",
-              "value": "={{ $json.body.customer_name }}"
-            },
-            {
-              "name": "customer_email",
-              "value": "={{ $json.body.customer_email }}"
-            }
-          ]
-        },
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $json.body.message, customer_name: $json.body.customer_name || '', customer_email: $json.body.customer_email || '' }) }}",
         "options": {}
       },
       "id": "f7c8a9b0-1234-4abc-8def-100000000002",
@@ -156,15 +141,8 @@
         "method": "POST",
         "url": "SLACK_BOOKINGS_WEBHOOK_URL",
         "sendBody": true,
-        "specifyBody": "keypairValue",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "text",
-              "value": "=\ud83d\udcc5 *New Booking Request*\n*Customer:* {{ $json.customer_name || 'N/A' }}\n*Email:* {{ $json.customer_email || 'N/A' }}\n*Date:* {{ $json.preferred_date || 'TBD' }} at {{ $json.preferred_time || 'TBD' }}\n*Health Concerns:* {{ $json.health_concerns || 'N/A' }}\n*Urgency:* {{ $json.urgency || 'N/A' }}\n*Supplement:* {{ $json.supplement || 'N/A' }} \u2014 {{ $json.supplement_reason || '' }}\n*Summary:* {{ $json.summary || 'N/A' }}"
-            }
-          ]
-        },
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: '\\ud83d\\udcc5 *New Booking Request*\\n*Customer:* ' + ($json.customer_name || 'N/A') + '\\n*Email:* ' + ($json.customer_email || 'N/A') + '\\n*Date:* ' + ($json.preferred_date || 'TBD') + ' at ' + ($json.preferred_time || 'TBD') + '\\n*Health Concerns:* ' + ($json.health_concerns || 'N/A') + '\\n*Urgency:* ' + ($json.urgency || 'N/A') + '\\n*Supplement:* ' + ($json.supplement || 'N/A') + ' \\u2014 ' + ($json.supplement_reason || '') + '\\n*Summary:* ' + ($json.summary || 'N/A') }) }}",
         "options": {}
       },
       "id": "f7c8a9b0-1234-4abc-8def-100000000005",
@@ -189,27 +167,8 @@
         "method": "POST",
         "url": "https://supplement-ai-ops-production.up.railway.app/api/support/triage",
         "sendBody": true,
-        "specifyBody": "keypairValue",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "message",
-              "value": "={{ $('Reception Webhook').item.json.body.message }}"
-            },
-            {
-              "name": "customer_name",
-              "value": "={{ $('Reception Webhook').item.json.body.customer_name }}"
-            },
-            {
-              "name": "customer_email",
-              "value": "={{ $('Reception Webhook').item.json.body.customer_email }}"
-            },
-            {
-              "name": "order_id",
-              "value": "={{ $('Reception Webhook').item.json.body.order_id }}"
-            }
-          ]
-        },
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $('Reception Webhook').item.json.body.message, customer_name: $('Reception Webhook').item.json.body.customer_name || '', customer_email: $('Reception Webhook').item.json.body.customer_email || '', order_id: $('Reception Webhook').item.json.body.order_id || '' }) }}",
         "options": {}
       },
       "id": "f7c8a9b0-1234-4abc-8def-100000000007",
@@ -224,15 +183,8 @@
         "method": "POST",
         "url": "SLACK_SUPPORT_WEBHOOK_URL",
         "sendBody": true,
-        "specifyBody": "keypairValue",
-        "bodyParameters": {
-          "parameters": [
-            {
-              "name": "text",
-              "value": "=\ud83c\udfa7 *New Support Query*\n*Customer:* {{ $json.customer_name || 'N/A' }}\n*Category:* {{ $json.triage_data.category || 'N/A' }}\n*Priority:* {{ $json.triage_data.priority || 'N/A' }}\n*Sentiment:* {{ $json.triage_data.sentiment || 'N/A' }}\n*Action:* {{ $json.triage_data.suggested_action || 'N/A' }}\n*Response:* {{ $json.triage_data.auto_response || 'N/A' }}"
-            }
-          ]
-        },
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: '\\ud83c\\udfa7 *New Support Query*\\n*Customer:* ' + ($json.customer_name || 'N/A') + '\\n*Category:* ' + ($json.triage_data.category || 'N/A') + '\\n*Priority:* ' + ($json.triage_data.priority || 'N/A') + '\\n*Sentiment:* ' + ($json.triage_data.sentiment || 'N/A') + '\\n*Action:* ' + ($json.triage_data.suggested_action || 'N/A') + '\\n*Response:* ' + ($json.triage_data.auto_response || 'N/A') }) }}",
         "options": {}
       },
       "id": "f7c8a9b0-1234-4abc-8def-100000000008",
@@ -331,7 +283,7 @@
   "settings": {
     "executionOrder": "v1"
   },
-  "versionId": "1",
+  "versionId": "2",
   "meta": {
     "instanceId": "supplement-ai-ops"
   },
