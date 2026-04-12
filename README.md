@@ -44,7 +44,7 @@ AI Classify Request → FastAPI on Railway → OpenAI GPT-4o-mini
 | Text (Booking) | Customer sends booking request → AI extracts intent, date, time, health concerns → suggests supplement → creates calendar event → Slack notification → confirms booking |
 | Text (Support) | Customer sends support query → AI classifies by category, priority, sentiment → generates auto-response → Slack notification → routes if needed |
 
-All inputs hit the **same n8n webhook** — the AI backend decides whether it's a booking or support request and routes accordingly.
+All inputs hit the **same n8n webhook** — the AI backend decides whether it's a booking or support request and routes accordingly. The webhook handles both Retell custom function payloads (`body.args`) and direct POST payloads (`body.message`).
 
 ---
 
@@ -79,7 +79,7 @@ Reception Webhook → AI Classify Request → Booking or Support?
 
                                     ┌─── NO (Support) ───────────────────────┐
                                     │                                         │
-                              AI Support Triage → Process Support Query        │
+                              AI Support Triage                               │
                                     │                                         │
                                     ├── Slack Support Notification             │
                                     │                                         │
@@ -88,15 +88,15 @@ Reception Webhook → AI Classify Request → Booking or Support?
 
 **Nodes:**
 - **Reception Webhook** — Single POST endpoint (`/webhook/supplement-reception`) receiving all requests
-- **AI Classify Request** — Calls `/api/booking/process` on Railway backend, OpenAI determines intent
-- **Booking or Support?** — IF node routes based on intent
-- **Process Booking** — Extracts structured booking data from AI response
-- **Google Calendar Create Event** — HTTP Request to Google Calendar REST API with OAuth2 credentials, creates event with customer name, health concerns, and preferred time
-- **Slack Booking Notification** — Posts to `#bookings` channel with booking details
-- **Respond - Booking Confirmed** — Returns confirmation to caller
-- **AI Support Triage** — Calls `/api/support/triage` on Railway backend
-- **Slack Support Notification** — Posts to `#support` channel with query details and priority
-- **Respond - Support Handled** — Returns support response to caller
+- **AI Classify Request** — Calls `/api/booking/process` on Railway backend; handles both Retell (`body.args`) and direct webhook (`body`) payloads
+- **Booking or Support?** — IF node routes based on intent (`book_consultation` → booking path, everything else → support path)
+- **Process Booking** — Extracts structured booking data from AI response (customer name, date, time, health concerns, supplement suggestion)
+- **Google Calendar Create Event** — HTTP Request to Google Calendar REST API with OAuth2 credentials; creates 1-hour event with customer name, health concerns, and supplement in description; timezone set to Europe/London
+- **Slack Booking Notification** — Posts to `#bookings` channel with full booking details
+- **Respond - Booking Confirmed** — Returns confirmation JSON to caller
+- **AI Support Triage** — Calls `/api/support/triage` on Railway backend for classification
+- **Slack Support Notification** — Posts to `#support` channel with category, priority, sentiment, and auto-response
+- **Respond - Support Handled** — Returns triage JSON to caller
 
 ---
 
@@ -107,15 +107,15 @@ Reception Webhook → AI Classify Request → Booking or Support?
 **Preview:** [Try voice agent →](https://agent.retellai.com/preview/agent_37a7d4939e00d23cd9a4dd1e8b)
 **Voice:** Cimo | **Language:** English | **Execution Mode:** Rigid Mode
 
-**Global Prompt:** Friendly booking assistant for a health supplement company, handling consultations for focus, energy, mood, and immune support.
-
 **Conversation Flow (4 nodes):**
 1. **Welcome Node** → Greets customer, asks for name
 2. **Health Concerns** → Asks what they need help with (focus, energy, mood, immune)
 3. **Preferred Time** → Asks when they'd like their consultation
-4. **Confirm Booking** → Triggers n8n webhook via custom function, confirms appointment
+4. **Confirm Booking** → Triggers n8n webhook via `book_consultation` custom function, confirms appointment
 
-**Custom Function:** `book_consultation` — POST to n8n webhook with customer name, health concerns, and preferred time.
+**Custom Function:** `book_consultation` — POST to n8n webhook (`https://ranjith369.app.n8n.cloud/webhook/supplement-reception`) with `message`, `customer_name`, and `customer_email` fields.
+
+**Post-Call Webhook:** Retell sends call transcripts to Railway (`/api/retell/webhook`), which forwards them to n8n for processing. This provides a second path for voice data to reach the workflow.
 
 ---
 
@@ -123,9 +123,9 @@ Reception Webhook → AI Classify Request → Booking or Support?
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
-| `/api/booking/process` | POST | Process booking requests via AI |
-| `/api/support/triage` | POST | Triage and classify support queries |
-| `/api/retell/create-web-call` | POST | Create browser-based Retell voice call |
+| `/api/booking/process` | POST | Process booking requests via AI — extracts intent, date, time, health concerns, suggests supplements |
+| `/api/support/triage` | POST | Triage and classify support queries — category, priority, sentiment, auto-response |
+| `/api/retell/create-web-call` | POST | Create browser-based Retell voice call (returns access token) |
 | `/api/retell/webhook` | POST | Receive Retell post-call events, forward transcript to n8n |
 | `/health` | GET | Health check |
 
@@ -135,22 +135,24 @@ Reception Webhook → AI Classify Request → Booking or Support?
 
 | Service | Purpose | Channel/Details |
 |---------|---------|-----------------|
-| Google Calendar | Automatic event creation | Creates consultation events on confirmed bookings via REST API |
+| Google Calendar | Automatic event creation | Creates 1-hour consultation events on confirmed bookings via REST API with OAuth2 |
 | Slack | Team notifications | `#bookings` for new bookings, `#support` for support queries |
-| Retell AI | Voice agent | Browser-based calls, triggers n8n webhook on booking |
-| OpenAI | AI processing | GPT-4o-mini for intent extraction and triage |
+| Retell AI | Voice agent | Browser-based calls via Web SDK; custom function triggers n8n webhook on booking |
+| OpenAI | AI processing | GPT-4o-mini for intent extraction, date/time parsing, supplement suggestion, and support triage |
 
 ---
 
 ## Testing
 
-**Test via n8n webhook (full pipeline):**
+**Test via n8n webhook (full pipeline — booking):**
 
 ```bash
 curl -X POST https://ranjith369.app.n8n.cloud/webhook/supplement-reception \
   -H "Content-Type: application/json" \
   -d '{"message": "I need help with focus and energy. Can I book for Thursday at 2pm?", "customer_name": "Sarah Johnson", "customer_email": "sarah@example.com"}'
 ```
+
+**Test via n8n webhook (full pipeline — support):**
 
 ```bash
 curl -X POST https://ranjith369.app.n8n.cloud/webhook/supplement-reception \
@@ -158,13 +160,15 @@ curl -X POST https://ranjith369.app.n8n.cloud/webhook/supplement-reception \
   -d '{"message": "I ordered the focus supplement last week but havent received it. Order ORD-12345.", "customer_name": "James Wilson", "order_id": "ORD-12345"}'
 ```
 
-**Test backend directly:**
+**Test backend directly (booking):**
 
 ```bash
 curl -X POST https://supplement-ai-ops-production.up.railway.app/api/booking/process \
   -H "Content-Type: application/json" \
   -d '{"message": "I need help with focus and energy. Can I book for Thursday at 2pm?", "customer_name": "Sarah Johnson", "customer_email": "sarah@example.com"}'
 ```
+
+**Test backend directly (support):**
 
 ```bash
 curl -X POST https://supplement-ai-ops-production.up.railway.app/api/support/triage \
@@ -179,11 +183,12 @@ curl -X POST https://supplement-ai-ops-production.up.railway.app/api/support/tri
 | Decision | Rationale |
 |----------|-----------|
 | Single webhook for all requests | Simpler architecture, AI handles routing |
-| Google Calendar via REST API | n8n's native Calendar node has a known bug with dynamic expressions; HTTP Request + OAuth2 bypasses it reliably |
+| Google Calendar via REST API | n8n's native Calendar node (v1.3) has a confirmed bug with dynamic expressions on Cloud v2.10.3; HTTP Request + OAuth2 bypasses it reliably |
 | Retell AI for voice | Browser-based testing, no phone costs for demo |
 | Separate FastAPI backend | Keeps AI logic testable, versionable, reusable |
 | GPT-4o-mini | Cost-effective for production, fast enough for real-time |
 | Slack webhook notifications | Team gets instant alerts, separate channels for booking vs support |
+| Dual payload handling (`body.args` / `body.message`) | Retell custom functions send data in `args`, while direct webhooks and Railway forwarding send in `body` — the workflow handles both |
 | Retry logic on HTTP nodes | Production systems must handle transient failures |
 | Fallback responses | Users always get a response, even if AI fails |
 

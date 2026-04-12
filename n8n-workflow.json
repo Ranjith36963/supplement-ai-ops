@@ -21,7 +21,7 @@
         "url": "https://supplement-ai-ops-production.up.railway.app/api/booking/process",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ message: $json.body.message, customer_name: $json.body.customer_name || '', customer_email: $json.body.customer_email || '' }) }}",
+        "jsonBody": "={\"message\": \"{{ $json.body.args ? $json.body.args.message : $json.body.message }}\", \"customer_name\": \"{{ $json.body.args ? $json.body.args.customer_name : ($json.body.customer_name || '') }}\", \"customer_email\": \"{{ $json.body.args ? $json.body.args.customer_email : ($json.body.customer_email || '') }}\"}",
         "options": {}
       },
       "id": "f7c8a9b0-1234-4abc-8def-100000000002",
@@ -94,7 +94,7 @@
         "nodeCredentialType": "googleCalendarOAuth2Api",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ summary: 'Supplement Consultation - ' + $node[\"Process Booking\"].json[\"customer_name\"], start: { dateTime: $node[\"Process Booking\"].json[\"preferred_date\"] + 'T' + $node[\"Process Booking\"].json[\"preferred_time\"] + ':00+00:00', timeZone: 'Europe/London' }, end: { dateTime: (() => { const d = new Date($node[\"Process Booking\"].json[\"preferred_date\"] + 'T' + $node[\"Process Booking\"].json[\"preferred_time\"] + ':00Z'); d.setMinutes(d.getMinutes() + 60); return d.toISOString().slice(0,19) + '+00:00'; })(), timeZone: 'Europe/London' }, description: 'Health concerns: ' + $node[\"Process Booking\"].json[\"health_concerns\"] + '\\nSupplement: ' + $node[\"Process Booking\"].json[\"supplement\"] }) }}",
+        "jsonBody": "={\"summary\": \"Supplement Consultation - {{ $node['Process Booking'].json['customer_name'] }}\", \"start\": {\"dateTime\": \"{{ $node['Process Booking'].json['preferred_date'] }}T{{ $node['Process Booking'].json['preferred_time'] }}:00\", \"timeZone\": \"Europe/London\"}, \"end\": {\"dateTime\": \"{{ $node['Process Booking'].json['preferred_date'] }}T{{ String(Number($node['Process Booking'].json['preferred_time'].split(':')[0]) + 1).padStart(2, '0') }}:{{ $node['Process Booking'].json['preferred_time'].split(':')[1] }}:00\", \"timeZone\": \"Europe/London\"}, \"description\": \"Health concerns: {{ $node['Process Booking'].json['health_concerns'] }}\\nSupplement: {{ $node['Process Booking'].json['supplement'] }}\"}",
         "options": {}
       },
       "id": "f7c8a9b0-1234-4abc-8def-100000000010",
@@ -109,7 +109,7 @@
         "url": "https://hooks.slack.com/services/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",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ text: '📅 *New Booking Request*\\n*Customer:* ' + ($json.customer_name || 'N/A') + '\\n*Email:* ' + ($json.customer_email || 'N/A') + '\\n*Date:* ' + ($json.preferred_date || 'TBD') + ' at ' + ($json.preferred_time || 'TBD') + '\\n*Health Concerns:* ' + ($json.health_concerns || 'N/A') + '\\n*Urgency:* ' + ($json.urgency || 'N/A') + '\\n*Supplement:* ' + ($json.supplement || 'N/A') + ' — ' + ($json.supplement_reason || '') + '\\n*Summary:* ' + ($json.summary || 'N/A') }) }}",
+        "jsonBody": "={{ JSON.stringify({ text: '\ud83d\udcc5 *New Booking Request*\\n*Customer:* ' + ($json.customer_name || 'N/A') + '\\n*Email:* ' + ($json.customer_email || 'N/A') + '\\n*Date:* ' + ($json.preferred_date || 'TBD') + ' at ' + ($json.preferred_time || 'TBD') + '\\n*Health Concerns:* ' + ($json.health_concerns || 'N/A') + '\\n*Urgency:* ' + ($json.urgency || 'N/A') + '\\n*Supplement:* ' + ($json.supplement || 'N/A') + ' \u2014 ' + ($json.supplement_reason || '') + '\\n*Summary:* ' + ($json.summary || 'N/A') }) }}",
         "options": {}
       },
       "id": "f7c8a9b0-1234-4abc-8def-100000000005",
@@ -135,7 +135,7 @@
         "url": "https://supplement-ai-ops-production.up.railway.app/api/support/triage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ message: $('Reception Webhook').item.json.body.message, customer_name: $('Reception Webhook').item.json.body.customer_name || '', customer_email: $('Reception Webhook').item.json.body.customer_email || '', order_id: $('Reception Webhook').item.json.body.order_id || '' }) }}",
+        "jsonBody": "={{ JSON.stringify({ message: $('Reception Webhook').item.json.body.args ? $('Reception Webhook').item.json.body.args.message : ($('Reception Webhook').item.json.body.message || ''), customer_name: $('Reception Webhook').item.json.body.args ? $('Reception Webhook').item.json.body.args.customer_name : ($('Reception Webhook').item.json.body.customer_name || ''), customer_email: $('Reception Webhook').item.json.body.args ? $('Reception Webhook').item.json.body.args.customer_email : ($('Reception Webhook').item.json.body.customer_email || ''), order_id: $('Reception Webhook').item.json.body.order_id || '' }) }}",
         "options": {}
       },
       "id": "f7c8a9b0-1234-4abc-8def-100000000007",
@@ -151,7 +151,7 @@
         "url": "https://hooks.slack.com/services/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",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ text: '🎧 *New Support Query*\\n*Customer:* ' + ($json.customer_name || 'N/A') + '\\n*Category:* ' + ($json.triage_data.category || 'N/A') + '\\n*Priority:* ' + ($json.triage_data.priority || 'N/A') + '\\n*Sentiment:* ' + ($json.triage_data.sentiment || 'N/A') + '\\n*Action:* ' + ($json.triage_data.suggested_action || 'N/A') + '\\n*Response:* ' + ($json.triage_data.auto_response || 'N/A') }) }}",
+        "jsonBody": "={{ JSON.stringify({ text: '\ud83c\udfa7 *New Support Query*\\n*Customer:* ' + ($json.customer_name || 'N/A') + '\\n*Category:* ' + ($json.triage_data.category || 'N/A') + '\\n*Priority:* ' + ($json.triage_data.priority || 'N/A') + '\\n*Sentiment:* ' + ($json.triage_data.sentiment || 'N/A') + '\\n*Action:* ' + ($json.triage_data.suggested_action || 'N/A') + '\\n*Response:* ' + ($json.triage_data.auto_response || 'N/A') }) }}",
         "options": {}
       },
       "id": "f7c8a9b0-1234-4abc-8def-100000000008",
@@ -201,7 +201,7 @@
   },
   "active": false,
   "settings": { "executionOrder": "v1" },
-  "versionId": "3",
+  "versionId": "4",
   "meta": { "instanceId": "supplement-ai-ops" },
   "tags": []
 }
