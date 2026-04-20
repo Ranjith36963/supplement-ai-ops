@@ -194,6 +194,19 @@ curl -X POST https://supplement-ai-ops-production.up.railway.app/api/support/tri
 
 ---
 
+## Setup & Redeploy
+
+1. Clone repo
+2. Copy `.env.example` to `.env` and fill in values
+3. Deploy `main.py` to Railway, set env vars in Railway dashboard
+4. Import `n8n-workflow.json` into n8n
+5. In n8n, set real Slack webhook URLs in the two Slack notification nodes
+6. In n8n, connect Google Calendar via OAuth2 credential
+7. Update `N8N_WEBHOOK_URL` and `BACKEND_URL` in `index.html` to your URLs
+8. Push `index.html` to GitHub Pages
+
+---
+
 ## File Structure
 
 ```
