@@ -149,7 +149,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://hooks.slack.com/services/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",
+        "url": "YOUR_SLACK_WEBHOOK_HERE",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ text: '📅 *New Booking Request*\\n*Customer:* ' + ($json.customer_name || 'N/A') + '\\n*Email:* ' + ($json.customer_email || 'N/A') + '\\n*Date:* ' + ($json.preferred_date || 'TBD') + ' at ' + ($json.preferred_time || 'TBD') + '\\n*Health Concerns:* ' + ($json.health_concerns || 'N/A') + '\\n*Urgency:* ' + ($json.urgency || 'N/A') + '\\n*Supplement:* ' + ($json.supplement || 'N/A') + ' — ' + ($json.supplement_reason || '') + '\\n*Summary:* ' + ($json.summary || 'N/A') }) }}",
@@ -201,7 +201,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://hooks.slack.com/services/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",
+        "url": "YOUR_SLACK_WEBHOOK_HERE",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ text: '🎧 *New Support Query*\\n*Customer:* ' + ($json.customer_name || 'N/A') + '\\n*Category:* ' + ($json.triage_data.category || 'N/A') + '\\n*Priority:* ' + ($json.triage_data.priority || 'N/A') + '\\n*Sentiment:* ' + ($json.triage_data.sentiment || 'N/A') + '\\n*Action:* ' + ($json.triage_data.suggested_action || 'N/A') + '\\n*Response:* ' + ($json.triage_data.auto_response || 'N/A') }) }}",
@@ -252,7 +252,7 @@
       "name": "Google Calendar Create Event",
       "credentials": {
         "googleCalendarOAuth2Api": {
-          "id": "ULLpvdfGKq6f3zMc",
+          "id": "YOUR_CREDENTIAL_ID",
           "name": "Google Calendar account"
         }
       }
