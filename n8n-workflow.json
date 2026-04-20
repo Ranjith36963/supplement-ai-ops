@@ -8,11 +8,14 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "f7c8a9b0-1234-4abc-8def-100000000001",
+      "id": "50a6e25c-ef47-4c3d-a852-21add81a7f36",
       "name": "Reception Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [250, 400],
+      "position": [
+        -1088,
+        256
+      ],
       "webhookId": "f7c8a9b0-wh01"
     },
     {
@@ -21,14 +24,17 @@
         "url": "https://supplement-ai-ops-production.up.railway.app/api/booking/process",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"message\": \"{{ $json.body.args ? $json.body.args.message : $json.body.message }}\", \"customer_name\": \"{{ $json.body.args ? $json.body.args.customer_name : ($json.body.customer_name || '') }}\", \"customer_email\": \"{{ $json.body.args ? $json.body.args.customer_email : ($json.body.customer_email || '') }}\"}",
+        "jsonBody": "={\n  \"message\": \"{{ $json.body.args ? $json.body.args.message : $json.body.message }}\",\n  \"customer_name\": \"{{ $json.body.args ? $json.body.args.customer_name : ($json.body.customer_name || '') }}\",\n  \"customer_email\": \"{{ $json.body.args ? $json.body.args.customer_email : ($json.body.customer_email || '') }}\"\n}",
         "options": {}
       },
-      "id": "f7c8a9b0-1234-4abc-8def-100000000002",
+      "id": "ce84d08b-2cb3-4714-bbd2-aed2415e5ea3",
       "name": "AI Classify Request",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [500, 400],
+      "position": [
+        -848,
+        256
+      ],
       "retryOnFail": true
     },
     {
@@ -54,37 +60,176 @@
         },
         "options": {}
       },
-      "id": "f7c8a9b0-1234-4abc-8def-100000000003",
+      "id": "2fe0ca9a-f1b2-40e0-8539-56806d50065b",
       "name": "Booking or Support?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [740, 400]
+      "position": [
+        -640,
+        256
+      ]
     },
     {
       "parameters": {
-        "mode": "manual",
-        "duplicateItem": false,
         "assignments": {
           "assignments": [
-            { "id": "set-customer-name", "name": "customer_name", "value": "={{ $('AI Classify Request').item.json.customer_name }}", "type": "string" },
-            { "id": "set-customer-email", "name": "customer_email", "value": "={{ $('AI Classify Request').item.json.customer_email }}", "type": "string" },
-            { "id": "set-intent", "name": "intent", "value": "={{ $('AI Classify Request').item.json.booking_data.intent }}", "type": "string" },
-            { "id": "set-preferred-date", "name": "preferred_date", "value": "={{ $('AI Classify Request').item.json.booking_data.preferred_date }}", "type": "string" },
-            { "id": "set-preferred-time", "name": "preferred_time", "value": "={{ $('AI Classify Request').item.json.booking_data.preferred_time }}", "type": "string" },
-            { "id": "set-health-concerns", "name": "health_concerns", "value": "={{ ($('AI Classify Request').item.json.booking_data.health_concerns || []).join(', ') }}", "type": "string" },
-            { "id": "set-urgency", "name": "urgency", "value": "={{ $('AI Classify Request').item.json.booking_data.urgency }}", "type": "string" },
-            { "id": "set-summary", "name": "summary", "value": "={{ $('AI Classify Request').item.json.booking_data.summary }}", "type": "string" },
-            { "id": "set-supplement", "name": "supplement", "value": "={{ $('AI Classify Request').item.json.booking_data.supplement_suggestion.primary }}", "type": "string" },
-            { "id": "set-supplement-reason", "name": "supplement_reason", "value": "={{ $('AI Classify Request').item.json.booking_data.supplement_suggestion.reason }}", "type": "string" }
+            {
+              "id": "set-customer-name",
+              "name": "customer_name",
+              "value": "={{ $('AI Classify Request').item.json.customer_name }}",
+              "type": "string"
+            },
+            {
+              "id": "set-customer-email",
+              "name": "customer_email",
+              "value": "={{ $('AI Classify Request').item.json.customer_email }}",
+              "type": "string"
+            },
+            {
+              "id": "set-intent",
+              "name": "intent",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.intent }}",
+              "type": "string"
+            },
+            {
+              "id": "set-preferred-date",
+              "name": "preferred_date",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.preferred_date }}",
+              "type": "string"
+            },
+            {
+              "id": "set-preferred-time",
+              "name": "preferred_time",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.preferred_time }}",
+              "type": "string"
+            },
+            {
+              "id": "set-health-concerns",
+              "name": "health_concerns",
+              "value": "={{ ($('AI Classify Request').item.json.booking_data.health_concerns || []).join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "set-urgency",
+              "name": "urgency",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.urgency }}",
+              "type": "string"
+            },
+            {
+              "id": "set-summary",
+              "name": "summary",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.summary }}",
+              "type": "string"
+            },
+            {
+              "id": "set-supplement",
+              "name": "supplement",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.supplement_suggestion.primary }}",
+              "type": "string"
+            },
+            {
+              "id": "set-supplement-reason",
+              "name": "supplement_reason",
+              "value": "={{ $('AI Classify Request').item.json.booking_data.supplement_suggestion.reason }}",
+              "type": "string"
+            }
           ]
         },
         "options": {}
       },
-      "id": "f7c8a9b0-1234-4abc-8def-100000000004",
+      "id": "7fe73437-efe9-44e4-a6be-c248d858ea91",
       "name": "Process Booking",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.4,
-      "position": [980, 240]
+      "position": [
+        -464,
+        64
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/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",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: '📅 *New Booking Request*\\n*Customer:* ' + ($json.customer_name || 'N/A') + '\\n*Email:* ' + ($json.customer_email || 'N/A') + '\\n*Date:* ' + ($json.preferred_date || 'TBD') + ' at ' + ($json.preferred_time || 'TBD') + '\\n*Health Concerns:* ' + ($json.health_concerns || 'N/A') + '\\n*Urgency:* ' + ($json.urgency || 'N/A') + '\\n*Supplement:* ' + ($json.supplement || 'N/A') + ' — ' + ($json.supplement_reason || '') + '\\n*Summary:* ' + ($json.summary || 'N/A') }) }}",
+        "options": {}
+      },
+      "id": "764431a2-7d44-4be8-95d7-6bd3778a84f4",
+      "name": "Slack Booking Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -48,
+        16
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'booking_confirmed', customer_name: $json.customer_name, intent: $json.intent, preferred_date: $json.preferred_date, preferred_time: $json.preferred_time, health_concerns: $json.health_concerns, urgency: $json.urgency, supplement: $json.supplement, supplement_reason: $json.supplement_reason, summary: $json.summary, message: 'Your consultation has been booked successfully.' }) }}",
+        "options": {}
+      },
+      "id": "0e1a2fe4-07e2-4d69-9620-743816ec96f6",
+      "name": "Respond - Booking Confirmed",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://supplement-ai-ops-production.up.railway.app/api/support/triage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ message: $('Reception Webhook').item.json.body.message, customer_name: $('Reception Webhook').item.json.body.customer_name || '', customer_email: $('Reception Webhook').item.json.body.customer_email || '', order_id: $('Reception Webhook').item.json.body.order_id || '' }) }}",
+        "options": {}
+      },
+      "id": "aa75f6c9-b1d9-46d1-86fc-c6274815b48e",
+      "name": "AI Support Triage",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -352,
+        432
+      ],
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://hooks.slack.com/services/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",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: '🎧 *New Support Query*\\n*Customer:* ' + ($json.customer_name || 'N/A') + '\\n*Category:* ' + ($json.triage_data.category || 'N/A') + '\\n*Priority:* ' + ($json.triage_data.priority || 'N/A') + '\\n*Sentiment:* ' + ($json.triage_data.sentiment || 'N/A') + '\\n*Action:* ' + ($json.triage_data.suggested_action || 'N/A') + '\\n*Response:* ' + ($json.triage_data.auto_response || 'N/A') }) }}",
+        "options": {}
+      },
+      "id": "a8f09133-f2af-4579-83f1-b50d8bf6cd3a",
+      "name": "Slack Support Notification",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -48,
+        368
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ status: 'support_handled', customer_name: $json.customer_name, category: $json.triage_data.category, priority: $json.triage_data.priority, sentiment: $json.triage_data.sentiment, auto_response: $json.triage_data.auto_response, suggested_action: $json.triage_data.suggested_action, routing: $json.routing, auto_reply_ready: $json.auto_reply_ready }) }}",
+        "options": {}
+      },
+      "id": "2bc3d7d0-b6f4-41bc-a2ba-a80e1d186a21",
+      "name": "Respond - Support Handled",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -48,
+        560
+      ]
     },
     {
       "parameters": {
@@ -94,114 +239,114 @@
         "nodeCredentialType": "googleCalendarOAuth2Api",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\"summary\": \"Supplement Consultation - {{ $node['Process Booking'].json['customer_name'] }}\", \"start\": {\"dateTime\": \"{{ $node['Process Booking'].json['preferred_date'] }}T{{ $node['Process Booking'].json['preferred_time'] }}:00\", \"timeZone\": \"Europe/London\"}, \"end\": {\"dateTime\": \"{{ $node['Process Booking'].json['preferred_date'] }}T{{ String(Number($node['Process Booking'].json['preferred_time'].split(':')[0]) + 1).padStart(2, '0') }}:{{ $node['Process Booking'].json['preferred_time'].split(':')[1] }}:00\", \"timeZone\": \"Europe/London\"}, \"description\": \"Health concerns: {{ $node['Process Booking'].json['health_concerns'] }}\\nSupplement: {{ $node['Process Booking'].json['supplement'] }}\"}",
+        "jsonBody": "={\n  \"summary\": \"Supplement Consultation - {{ $node['Process Booking'].json['customer_name'] }}\",\n  \"start\": {\n    \"dateTime\": \"{{ $node['Process Booking'].json['preferred_date'] }}T{{ $node['Process Booking'].json['preferred_time'] }}:00\",\n    \"timeZone\": \"Europe/London\"\n  },\n  \"end\": {\n    \"dateTime\": \"{{ $node['Process Booking'].json['preferred_date'] }}T{{ String(Number($node['Process Booking'].json['preferred_time'].split(':')[0]) + 1).padStart(2, '0') }}:{{ $node['Process Booking'].json['preferred_time'].split(':')[1] }}:00\",\n    \"timeZone\": \"Europe/London\"\n  },\n  \"description\": \"Health concerns: {{ $node['Process Booking'].json['health_concerns'] }}\\nSupplement: {{ $node['Process Booking'].json['supplement'] }}\"\n}",
         "options": {}
       },
-      "id": "f7c8a9b0-1234-4abc-8def-100000000010",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -272,
+        -80
+      ],
+      "id": "cdd524e2-d89e-4c5e-9771-da2bd5d729ef",
       "name": "Google Calendar Create Event",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1240, 100]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://hooks.slack.com/services/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",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ text: '\ud83d\udcc5 *New Booking Request*\\n*Customer:* ' + ($json.customer_name || 'N/A') + '\\n*Email:* ' + ($json.customer_email || 'N/A') + '\\n*Date:* ' + ($json.preferred_date || 'TBD') + ' at ' + ($json.preferred_time || 'TBD') + '\\n*Health Concerns:* ' + ($json.health_concerns || 'N/A') + '\\n*Urgency:* ' + ($json.urgency || 'N/A') + '\\n*Supplement:* ' + ($json.supplement || 'N/A') + ' \u2014 ' + ($json.supplement_reason || '') + '\\n*Summary:* ' + ($json.summary || 'N/A') }) }}",
-        "options": {}
-      },
-      "id": "f7c8a9b0-1234-4abc-8def-100000000005",
-      "name": "Slack Booking Notification",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1240, 240]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ status: 'booking_confirmed', customer_name: $json.customer_name, intent: $json.intent, preferred_date: $json.preferred_date, preferred_time: $json.preferred_time, health_concerns: $json.health_concerns, urgency: $json.urgency, supplement: $json.supplement, supplement_reason: $json.supplement_reason, summary: $json.summary, message: 'Your consultation has been booked successfully.' }) }}"
-      },
-      "id": "f7c8a9b0-1234-4abc-8def-100000000006",
-      "name": "Respond - Booking Confirmed",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [1240, 380]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://supplement-ai-ops-production.up.railway.app/api/support/triage",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ message: $('Reception Webhook').item.json.body.args ? $('Reception Webhook').item.json.body.args.message : ($('Reception Webhook').item.json.body.message || ''), customer_name: $('Reception Webhook').item.json.body.args ? $('Reception Webhook').item.json.body.args.customer_name : ($('Reception Webhook').item.json.body.customer_name || ''), customer_email: $('Reception Webhook').item.json.body.args ? $('Reception Webhook').item.json.body.args.customer_email : ($('Reception Webhook').item.json.body.customer_email || ''), order_id: $('Reception Webhook').item.json.body.order_id || '' }) }}",
-        "options": {}
-      },
-      "id": "f7c8a9b0-1234-4abc-8def-100000000007",
-      "name": "AI Support Triage",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [980, 560],
-      "retryOnFail": true
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://hooks.slack.com/services/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",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ text: '\ud83c\udfa7 *New Support Query*\\n*Customer:* ' + ($json.customer_name || 'N/A') + '\\n*Category:* ' + ($json.triage_data.category || 'N/A') + '\\n*Priority:* ' + ($json.triage_data.priority || 'N/A') + '\\n*Sentiment:* ' + ($json.triage_data.sentiment || 'N/A') + '\\n*Action:* ' + ($json.triage_data.suggested_action || 'N/A') + '\\n*Response:* ' + ($json.triage_data.auto_response || 'N/A') }) }}",
-        "options": {}
-      },
-      "id": "f7c8a9b0-1234-4abc-8def-100000000008",
-      "name": "Slack Support Notification",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1240, 460]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ status: 'support_handled', customer_name: $json.customer_name, category: $json.triage_data.category, priority: $json.triage_data.priority, sentiment: $json.triage_data.sentiment, auto_response: $json.triage_data.auto_response, suggested_action: $json.triage_data.suggested_action, routing: $json.routing, auto_reply_ready: $json.auto_reply_ready }) }}"
-      },
-      "id": "f7c8a9b0-1234-4abc-8def-100000000009",
-      "name": "Respond - Support Handled",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [1240, 660]
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "ULLpvdfGKq6f3zMc",
+          "name": "Google Calendar account"
+        }
+      }
     }
   ],
+  "pinData": {},
   "connections": {
     "Reception Webhook": {
-      "main": [[{ "node": "AI Classify Request", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "AI Classify Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "AI Classify Request": {
-      "main": [[{ "node": "Booking or Support?", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Booking or Support?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Booking or Support?": {
       "main": [
-        [{ "node": "Process Booking", "type": "main", "index": 0 }],
-        [{ "node": "AI Support Triage", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Process Booking",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Support Triage",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Process Booking": {
-      "main": [[
-        { "node": "Google Calendar Create Event", "type": "main", "index": 0 },
-        { "node": "Slack Booking Notification", "type": "main", "index": 0 },
-        { "node": "Respond - Booking Confirmed", "type": "main", "index": 0 }
-      ]]
+      "main": [
+        [
+          {
+            "node": "Slack Booking Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond - Booking Confirmed",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Google Calendar Create Event",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "AI Support Triage": {
-      "main": [[
-        { "node": "Slack Support Notification", "type": "main", "index": 0 },
-        { "node": "Respond - Support Handled", "type": "main", "index": 0 }
-      ]]
+      "main": [
+        [
+          {
+            "node": "Slack Support Notification",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Respond - Support Handled",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
-  "active": false,
-  "settings": { "executionOrder": "v1" },
-  "versionId": "4",
-  "meta": { "instanceId": "supplement-ai-ops" },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "51a7bf06-3dc9-4e73-8fb3-1d033ffdf66c",
+  "meta": {
+    "instanceId": "0f6f4c5f7444007944fe00b24f83ac4bc97060a6ed47a19a51cd983c62321b7a"
+  },
+  "id": "TDVOr26DisU4e0Pd",
   "tags": []
 }
