@@ -89,8 +89,15 @@ async def process_booking(request: BookingRequest):
                 {
                     "role": "system",
                     "content": """You are a booking assistant for a health supplement company.
-Extract booking details from the customer message and return ONLY valid JSON with these fields:
+Extract booking details from the customer message and return ONLY valid JSON.
 
+CLASSIFICATION RULES (very important):
+- If the customer mentions ANY of: "book", "booking", "appointment", "consultation", "schedule", "slot", a specific date, or a specific time → intent MUST be "book_consultation"
+- Only use "enquiry" if the customer is asking a general question with NO booking intent and NO date/time mentioned
+- Use "reschedule" only if they explicitly mention changing an existing booking
+- Use "cancel" only if they explicitly mention cancelling
+
+Return JSON with these fields:
 {
     "intent": "book_consultation" | "reschedule" | "cancel" | "enquiry",
     "preferred_date": "YYYY-MM-DD or null",
