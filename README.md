@@ -211,14 +211,17 @@ curl -X POST https://supplement-ai-ops-production.up.railway.app/api/support/tri
 
 ```
 supplement-ai-ops/
-├── index.html          # Live demo page (GitHub Pages)
-├── main.py             # FastAPI app (booking, support, Retell endpoints)
-├── n8n-workflow.json    # n8n workflow definition (import into n8n)
-├── requirements.txt    # Python dependencies
-├── Procfile            # Railway start command
-├── railway.json        # Railway config
-├── .nojekyll           # Bypass Jekyll processing on GitHub Pages
-└── README.md           # This file
+├── .env.example       # Env var template for redeploy
+├── .gitignore         # Git exclusions
+├── .nojekyll          # Bypass Jekyll on GitHub Pages
+├── LICENSE            # MIT
+├── README.md          # This file
+├── index.html         # Live demo page (GitHub Pages)
+├── main.py            # FastAPI app (booking, support, Retell endpoints)
+├── n8n-workflow.json  # n8n workflow definition (import into n8n)
+├── Procfile           # Railway start command
+├── railway.json       # Railway config
+└── requirements.txt   # Python dependencies
 ```
 
 ---

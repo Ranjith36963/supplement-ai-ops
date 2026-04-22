@@ -43,7 +43,8 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "strict",
+            "version": 1
           },
           "conditions": [
             {
@@ -184,8 +185,26 @@
         "method": "POST",
         "url": "https://supplement-ai-ops-production.up.railway.app/api/support/triage",
         "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ message: $('Reception Webhook').item.json.body.message, customer_name: $('Reception Webhook').item.json.body.customer_name || '', customer_email: $('Reception Webhook').item.json.body.customer_email || '', order_id: $('Reception Webhook').item.json.body.order_id || '' }) }}",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $('Reception Webhook').item.json.body.args?.message || $('Reception Webhook').item.json.body.message || '' }}"
+            },
+            {
+              "name": "customer_name",
+              "value": "={{ $('Reception Webhook').item.json.body.args?.customer_name || $('Reception Webhook').item.json.body.customer_name || '' }}"
+            },
+            {
+              "name": "customer_email",
+              "value": "={{ $('Reception Webhook').item.json.body.args?.customer_email || $('Reception Webhook').item.json.body.customer_email || '' }}"
+            },
+            {
+              "name": "order_id",
+              "value": "={{ $('Reception Webhook').item.json.body.order_id || '' }}"
+            }
+          ]
+        },
         "options": {}
       },
       "id": "aa75f6c9-b1d9-46d1-86fc-c6274815b48e",
@@ -343,7 +362,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "51a7bf06-3dc9-4e73-8fb3-1d033ffdf66c",
+  "versionId": "3d83e405-6e47-494c-b1cc-15da50262832",
   "meta": {
     "instanceId": "0f6f4c5f7444007944fe00b24f83ac4bc97060a6ed47a19a51cd983c62321b7a"
   },
